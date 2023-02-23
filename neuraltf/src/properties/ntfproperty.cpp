@@ -28,6 +28,7 @@
  *********************************************************************************/
 
 #include <inviwo/neuraltf/properties/ntfproperty.h>
+#include <inviwo/core/properties/valuewrapper.h>              // for PropertySerializa...
 
 namespace inviwo {
 
@@ -43,6 +44,7 @@ NTFProperty::NTFProperty(std::string_view identifier,
         std::make_unique<IntSize3Property>("coord", "Coordinate", size3_t(0), size3_t(0), size3_t(2048)),
         0, ListPropertyUIFlag::Remove)
     {
+        tf_.setSerializationMode(PropertySerializationMode::All);
         addProperties(tf_, similarityExponent_, similarityThreshold_, annotations_);
 }
 
@@ -57,7 +59,14 @@ NTFProperty::NTFProperty(const NTFProperty& other)
 
 Property& NTFProperty::setIdentifier(const std::string_view identifier){
     tf_.setIdentifier("transferFunction" + std::string(identifier.size() > 0 ? identifier.substr(3) : ""));
+    LogInfo("setIdentifier(): Setting identifier transferFunction" << std::string(getIdentifier().size() > 0 ? getIdentifier().substr(3) : ""));
     return Property::setIdentifier(identifier);
+}
+
+void NTFProperty::deserialize(Deserializer& d) {
+    CompositeProperty::deserialize(d);
+    LogInfo("deserialize(): Setting identifier transferFunction" << std::string(getIdentifier().size() > 0 ? getIdentifier().substr(3) : ""));
+    tf_.setIdentifier("transferFunction" + std::string(getIdentifier().size() > 0 ? getIdentifier().substr(3) : ""));
 }
 
 void NTFProperty::addAnnotation(const size3_t coord){

@@ -59,6 +59,7 @@ public:
 
     virtual NTFProperty* clone() const override;
     virtual Property& setIdentifier(const std::string_view identifier) override;
+    virtual void deserialize(Deserializer&) override;
 
     void addAnnotation(const size3_t coord);
 

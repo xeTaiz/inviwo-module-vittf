@@ -73,6 +73,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     , annotationButtons_{"annotationButtons", "Add Annotations",
         std::make_unique<ButtonProperty>("addCoord", "Add Annotation"), 
         0, ListPropertyUIFlag::Static, InvalidationLevel::Valid}
+    , rawTransferFunction_{"rawTransferFunction", "Raw Data Transfer Function", &volumePort_}
     , raycasting_{"raycaster", "Raycasting"}
     , camera_{"camera", "Camera", util::boundingBox(volumePort_)}
     , lighting_{"lighting", "Lighting", &camera_}
@@ -99,7 +100,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     similarityPort_.setOptional(true);
     backgroundPort_.setOptional(true);
 
-    addProperties(raycasting_, ntfs_, annotationButtons_, camera_, lighting_, positionIndicator_, 
+    addProperties(raycasting_, rawTransferFunction_, ntfs_, annotationButtons_, camera_, lighting_, positionIndicator_, 
         currentVoxelSelectionX_, currentVoxelSelectionY_, currentVoxelSelectionZ_);
     currentVoxelSelectionX_.setVisible(false);
     currentVoxelSelectionY_.setVisible(false);
@@ -116,19 +117,20 @@ void DINOVolumeRenderer::initializeResources() {
     size_t numClasses = similarityPort_.getVectorData().size();
     shader_.getFragmentShaderObject()->addShaderDefine("NUM_CLASSES", std::to_string(numClasses));
 
-    if (similarityPort_.hasData()) {
-        // old numClasses ntfs_.getProperties().size()
-        if (numClasses > 0){
-            StrBuffer str3dsampler, str2dsampler, strApply;
-            for (size_t i = 0; i < numClasses; ++i) {
-                str3dsampler.append("uniform sampler3D ntf{0};", i);
-                str2dsampler.append("uniform sampler2D transferFunction{0};", i);
-                strApply.append("color[{0}] = applyTF(transferFunction{0}, texture(ntf{0}, samplePos).x);", i);
-            }
-            shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_NTF_SAMPLERS", str3dsampler.view());
-            shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_TF_SAMPLERS", str2dsampler.view());
-            shader_.getFragmentShaderObject()->addShaderDefine("APPLY_NTFS", strApply.view());
+    if (similarityPort_.hasData() && numClasses > 0) {
+        StrBuffer str3dsampler, str2dsampler, strApply;
+        for (size_t i = 0; i < numClasses; ++i) {
+            str3dsampler.append("uniform sampler3D ntf{0};", i);
+            str2dsampler.append("uniform sampler2D transferFunction{0};", i);
+            strApply.append("color[{0}] = applyTF(transferFunction{0}, texture(ntf{0}, samplePos).x);", i);
         }
+        shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_NTF_SAMPLERS", str3dsampler.view());
+        shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_TF_SAMPLERS", str2dsampler.view());
+        shader_.getFragmentShaderObject()->addShaderDefine("APPLY_NTFS", strApply.view());
+    } else {
+        shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_NTF_SAMPLERS", "");
+        shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_TF_SAMPLERS", "");
+        shader_.getFragmentShaderObject()->addShaderDefine("APPLY_NTFS", "");
     }
     if(volumePort_.hasData()) {
         shader_.build();
@@ -140,35 +142,31 @@ void DINOVolumeRenderer::process() {
     shader_.activate();
 
     TextureUnitContainer units;
+    // Bind Volumes
     utilgl::bindAndSetUniforms(shader_, units, volumePort_);
     for (auto [p,v] : similarityPort_.getSourceVectorData()){
         utilgl::bindAndSetUniforms(shader_, units, *v, p->getIdentifier());
     }
+    // Bind Images
     utilgl::bindAndSetUniforms(shader_, units, entryPort_, ImageType::ColorDepthPicking);
     utilgl::bindAndSetUniforms(shader_, units, exitPort_, ImageType::ColorDepth);
     if (backgroundPort_.hasData()) {
         utilgl::bindAndSetUniforms(shader_, units, backgroundPort_, ImageType::ColorDepthPicking);
     }
-
+    // Bind Transfer Functions
+    utilgl::bindAndSetUniforms(shader_, units, rawTransferFunction_);
     std::vector<Property*> ntfProps = ntfs_.getProperties();
     for (const Property* prop : ntfProps) {
         const TransferFunctionProperty& tfProp = static_cast<const NTFProperty*>(prop)->tf_;
         utilgl::bindAndSetUniforms(shader_, units, tfProp);
     }
+    // Bind remaining stuff
     utilgl::setUniforms(shader_, outport_, camera_, lighting_, raycasting_, positionIndicator_);
-
+    // Draw
     utilgl::singleDrawImagePlaneRect();
 
     shader_.deactivate();
     utilgl::deactivateCurrentTarget();
-}
-
-
-void DINOVolumeRenderer::deserialize(Deserializer& d) {
-    Processor::deserialize(d);
-    for (auto [i, ntf] : util::enumerate(ntfs_.getProperties())) {
-        static_cast<NTFProperty*>(ntf)->tf_.setIdentifier(std::string("transferFunction") + std::to_string(i+1));
-    }
 }
 
 void DINOVolumeRenderer::updateButtons() {

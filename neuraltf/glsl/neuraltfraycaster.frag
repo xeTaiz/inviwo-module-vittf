@@ -63,6 +63,7 @@ uniform CameraParameters camera;
 uniform VolumeIndicatorParameters positionindicator;
 uniform RaycastingParameters raycaster;
 
+uniform sampler2D rawTransferFunction;
 DEFINE_TF_SAMPLERS
 
 #define ERT_THRESHOLD 0.99  // threshold for early ray termination
@@ -78,7 +79,7 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
     float t = 0.5f * tIncr;
     rayDirection = normalize(rayDirection);
     float tDepth = -1.0;
-    mat4 color;
+    vec4 color[NUM_CLASSES + 1];
     vec4 voxel;
     vec3 samplePos;
     mat4x3 gradients;
@@ -101,14 +102,9 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
     while (t < tEnd) {
         samplePos = entryPoint + t * rayDirection;
         voxel = getNormalizedVoxel(volume, volumeParameters, samplePos);
-        // float sim1 = texture(Bone, samplePos).x;
-        // float sim2 = texture(Lung, samplePos).x;
+        color[NUM_CLASSES] = applyTF(rawTransferFunction, voxel);
         // macro defined in MultichannelRaycaster::initializeResources()
-        // sets colors;
-        // color[0] = applyTF(transferFunction1, sim1);
-        // color[1] = applyTF(transferFunction2, sim2);
         APPLY_NTFS
-        //color[0] = vec4(1,1,1,1);
 
         result = DRAW_BACKGROUND(result, t, tIncr, backgroundColor, bgTDepth, tDepth);
         result = DRAW_PLANES(result, samplePos, rayDirection, tIncr, positionindicator, t, tDepth);
@@ -116,7 +112,7 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
         // World space position
         vec3 worldSpacePosition = (volumeParameters.textureToWorld * vec4(samplePos, 1.0)).xyz;
         gradients = COMPUTE_ALL_GRADIENTS(voxel, volume, volumeParameters, samplePos);
-        for (int i = 0; i < NUM_CLASSES; ++i) {
+        for (int i = 0; i < NUM_CLASSES + 1; ++i) {
             if(color[i].a > 0.0){
                 color[i].rgb =
                     APPLY_LIGHTING(lighting, color[i].rgb, color[i].rgb, vec3(1.0),

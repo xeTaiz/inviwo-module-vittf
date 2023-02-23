@@ -58,7 +58,6 @@ public:
 
     virtual void initializeResources() override;
     virtual void process() override;
-    virtual void deserialize(Deserializer&) override;
     
     void updateButtons();
 private:
@@ -74,6 +73,7 @@ private:
     ListProperty ntfs_;
     ListProperty annotationButtons_;
 
+    TransferFunctionProperty rawTransferFunction_;
     SimpleRaycastingProperty raycasting_;
     CameraProperty camera_;
     SimpleLightingProperty lighting_;
