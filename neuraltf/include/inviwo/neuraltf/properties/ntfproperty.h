@@ -42,6 +42,44 @@
 
 namespace inviwo {
 
+class IVW_MODULE_NEURALTF_API NTFPropertyList : public ListProperty, public PropertyObserver {
+public:
+    NTFPropertyList(std::string_view identifier, std::string_view displayName, Document help = {},
+                 std::vector<std::unique_ptr<Property>> prefabs = {},
+                 size_t maxNumberOfElements = 0,
+                 ListPropertyUIFlags uiFlags = ListPropertyUIFlag::Add | ListPropertyUIFlag::Remove,
+                 InvalidationLevel invalidationLevel = InvalidationLevel::InvalidResources,
+                 PropertySemantics semantics = PropertySemantics::Default)
+        : ListProperty(identifier, displayName, help, std::move(prefabs), maxNumberOfElements, uiFlags, invalidationLevel, semantics) {};
+
+    NTFPropertyList(std::string_view identifier, std::string_view displayName,
+                 std::vector<std::unique_ptr<Property>> prefabs, size_t maxNumberOfElements = 0,
+                 ListPropertyUIFlags uiFlags = ListPropertyUIFlag::Add | ListPropertyUIFlag::Remove,
+                 InvalidationLevel invalidationLevel = InvalidationLevel::InvalidResources,
+                 PropertySemantics semantics = PropertySemantics::Default)
+        : ListProperty(identifier, displayName, std::move(prefabs), maxNumberOfElements, uiFlags, invalidationLevel, semantics) {};
+
+    NTFPropertyList(std::string_view identifier, std::string_view displayName,
+                 std::unique_ptr<Property> prefab, size_t maxNumberOfElements = 0,
+                 ListPropertyUIFlags uiFlags = ListPropertyUIFlag::Add | ListPropertyUIFlag::Remove,
+                 InvalidationLevel invalidationLevel = InvalidationLevel::InvalidResources,
+                 PropertySemantics semantics = PropertySemantics::Default)
+        : ListProperty(identifier, displayName, std::move(prefab), maxNumberOfElements, uiFlags, invalidationLevel, semantics) {};
+
+    NTFPropertyList(std::string_view identifier, std::string_view displayName,
+                 size_t maxNumberOfElements,
+                 ListPropertyUIFlags uiFlags = ListPropertyUIFlag::Add | ListPropertyUIFlag::Remove,
+                 InvalidationLevel invalidationLevel = InvalidationLevel::InvalidResources,
+                 PropertySemantics semantics = PropertySemantics::Default)
+        : ListProperty(identifier, displayName, maxNumberOfElements, uiFlags, invalidationLevel, semantics) {};
+
+    NTFPropertyList(const NTFPropertyList& rhs) : ListProperty(rhs) {};
+    // virtual ListProperty* clone() const override { return ListProperty::clone(this); }
+    // virtual ~NTFPropertyList() = default;
+    virtual void insertProperty(size_t index, Property* property, bool owner = true) override;
+    virtual void onSetDisplayName(Property* property, const std::string& displayName) override;
+};
+
 /**
  * \brief VERY_BRIEFLY_DESCRIBE_THE_CLASS
  * DESCRIBE_THE_CLASS_FROM_A_DEVELOPER_PERSPECTIVE

@@ -80,9 +80,9 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
     rayDirection = normalize(rayDirection);
     float tDepth = -1.0;
     vec4 color[NUM_CLASSES + 1];
-    vec4 voxel;
+    vec3 gradients[NUM_CLASSES + 1];
+    float sim[NUM_CLASSES + 1];
     vec3 samplePos;
-    mat4x3 gradients;
     vec3 toCameraDir =
         normalize(camera.position - (volumeParameters.textureToWorld * vec4(entryPoint, 1.0)).xyz);
     
@@ -101,8 +101,9 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
 
     while (t < tEnd) {
         samplePos = entryPoint + t * rayDirection;
-        voxel = getNormalizedVoxel(volume, volumeParameters, samplePos);
-        color[NUM_CLASSES] = applyTF(rawTransferFunction, voxel);
+        sim[NUM_CLASSES] = getNormalizedVoxel(volume, volumeParameters, samplePos).x;
+        color[NUM_CLASSES] = applyTF(rawTransferFunction, sim[NUM_CLASSES]);
+        gradients[NUM_CLASSES] = gradientCentralDiff(vec4(sim[NUM_CLASSES]), volume, volumeParameters, samplePos, 0);
         // macro defined in MultichannelRaycaster::initializeResources()
         APPLY_NTFS
 
@@ -111,13 +112,12 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
 
         // World space position
         vec3 worldSpacePosition = (volumeParameters.textureToWorld * vec4(samplePos, 1.0)).xyz;
-        gradients = COMPUTE_ALL_GRADIENTS(voxel, volume, volumeParameters, samplePos);
         for (int i = 0; i < NUM_CLASSES + 1; ++i) {
             if(color[i].a > 0.0){
                 color[i].rgb =
                     APPLY_LIGHTING(lighting, color[i].rgb, color[i].rgb, vec3(1.0),
                                     worldSpacePosition, normalize(-gradients[i]), toCameraDir);
-                result = APPLY_COMPOSITING(result, color[i], samplePos, voxel, gradients[i], camera,
+                result = APPLY_COMPOSITING(result, color[i], samplePos, vec4(sim[i]), gradients[i], camera,
                                             raycaster.isoValue, t, tDepth, tIncr);
             }
         }

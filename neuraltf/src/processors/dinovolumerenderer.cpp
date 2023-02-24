@@ -69,7 +69,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     , backgroundPort_{"bg", "Input Image to write into"_help}
     , outport_{"outport", "Rendered Image"_help}
     , ntfs_{"tfs", "Classes", 
-        std::make_unique<NTFProperty>("ntf0", "Class 1"),} 
+        std::make_unique<NTFProperty>("ntf0", "Class 1")} 
     , annotationButtons_{"annotationButtons", "Add Annotations",
         std::make_unique<ButtonProperty>("addCoord", "Add Annotation"), 
         0, ListPropertyUIFlag::Static, InvalidationLevel::Valid}
@@ -122,7 +122,9 @@ void DINOVolumeRenderer::initializeResources() {
         for (size_t i = 0; i < numClasses; ++i) {
             str3dsampler.append("uniform sampler3D ntf{0};", i);
             str2dsampler.append("uniform sampler2D transferFunction{0};", i);
-            strApply.append("color[{0}] = applyTF(transferFunction{0}, texture(ntf{0}, samplePos).x);", i);
+            strApply.append("sim[{0}] = texture(ntf{0}, samplePos).x;", i);
+            strApply.append("color[{0}] = applyTF(transferFunction{0}, sim[{0}]);", i);
+            strApply.append("gradients[{0}] = gradientCentralDiff(vec4(sim[{0}]), ntf{0}, volumeParameters, samplePos, 0);", i);
         }
         shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_NTF_SAMPLERS", str3dsampler.view());
         shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_TF_SAMPLERS", str2dsampler.view());

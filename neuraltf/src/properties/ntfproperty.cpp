@@ -32,6 +32,18 @@
 
 namespace inviwo {
 
+void NTFPropertyList::insertProperty(size_t index, Property* property, bool owner) {
+    property->addObserver(this);
+    CompositeProperty::insertProperty(index, property, owner);
+}
+
+void NTFPropertyList::onSetDisplayName(Property* property, const std::string& displayName) {
+    
+    auto btnListProp = this->getOwner()->getPropertyByIdentifier("annotationButtons");
+    auto btn = dynamic_cast<PropertyOwner*>(btnListProp)->getPropertyByIdentifier(property->getIdentifier()+"-addCoord");
+    btn->setDisplayName("Add to " + displayName);
+}
+
 NTFProperty::NTFProperty(std::string_view identifier,
     std::string_view displayName,
     InvalidationLevel invalidationLevel,

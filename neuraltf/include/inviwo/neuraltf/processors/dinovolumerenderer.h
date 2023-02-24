@@ -70,7 +70,7 @@ private:
     ImageInport backgroundPort_;
     ImageOutport outport_;
 
-    ListProperty ntfs_;
+    NTFPropertyList ntfs_;
     ListProperty annotationButtons_;
 
     TransferFunctionProperty rawTransferFunction_;
