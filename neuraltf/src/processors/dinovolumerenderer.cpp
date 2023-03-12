@@ -30,6 +30,7 @@
 #include <inviwo/neuraltf/processors/dinovolumerenderer.h>
 
 #include <inviwo/core/algorithm/boundingbox.h>                // for boundingBox
+#include <inviwo/core/network/networklock.h>
 
 #include <inviwo/core/properties/valuewrapper.h>              // for PropertySerializa...
 #include <inviwo/core/properties/transferfunctionproperty.h>  // for TransferFunctionProperty
@@ -69,7 +70,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     , backgroundPort_{"bg", "Input Image to write into"_help}
     , outport_{"outport", "Rendered Image"_help}
     , ntfs_{"tfs", "Classes", 
-        std::make_unique<NTFProperty>("ntf0", "Class 1")} 
+        std::make_unique<NTFProperty>("ntf0", "Class 1", &volumePort_)} 
     , annotationButtons_{"annotationButtons", "Add Annotations",
         std::make_unique<ButtonProperty>("addCoord", "Add Annotation"), 
         0, ListPropertyUIFlag::Static, InvalidationLevel::Valid}
@@ -78,20 +79,20 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     , camera_{"camera", "Camera", util::boundingBox(volumePort_)}
     , lighting_{"lighting", "Lighting", &camera_}
     , positionIndicator_("positionindicator", "Position Indicator")
-    , currentVoxelSelectionX_("currentVoxelX", "Current Voxel Selection X", 0, 0, 2048)
-    , currentVoxelSelectionY_("currentVoxelY", "Current Voxel Selection Y", 0, 0, 2048)
-    , currentVoxelSelectionZ_("currentVoxelZ", "Current Voxel Selection Z", 0, 0, 2048){
+    , currentVoxelSelectionX_("currentVoxelX", "Current Voxel Selection X", 0, 0, 2048, 1, InvalidationLevel::InvalidOutput)
+    , currentVoxelSelectionY_("currentVoxelY", "Current Voxel Selection Y", 0, 0, 2048, 1, InvalidationLevel::InvalidOutput)
+    , currentVoxelSelectionZ_("currentVoxelZ", "Current Voxel Selection Z", 0, 0, 2048, 1, InvalidationLevel::InvalidOutput){
+    // Invalidation Levels
+    camera_.setInvalidationLevel(InvalidationLevel::InvalidOutput);
+    rawTransferFunction_.setInvalidationLevel(InvalidationLevel::InvalidOutput);
+    lighting_.setInvalidationLevel(InvalidationLevel::InvalidOutput);
 
     volumePort_.onChange([this]() { initializeResources(); });
     similarityPort_.onChange([this]() { initializeResources(); });
     ntfs_.setSerializationMode(PropertySerializationMode::All);
     ntfs_.setInvalidationLevel(InvalidationLevel::Valid);
-    ntfs_.onChange([this](){ 
-        if (ntfs_.getProperties().size() != annotationButtons_.getProperties().size()) {
-            updateButtons();
-        }
-        invalidate(InvalidationLevel::InvalidResources); 
-    });
+    ntfs_.onChange([this](){ updateButtons(); invalidate(InvalidationLevel::InvalidOutput); });
+
     shader_.onReload([this]() { initializeResources(); });
     backgroundPort_.onConnect([&]() { this->invalidate(InvalidationLevel::InvalidResources); });
     backgroundPort_.onDisconnect([&]() { this->invalidate(InvalidationLevel::InvalidResources); });
@@ -102,12 +103,13 @@ DINOVolumeRenderer::DINOVolumeRenderer()
 
     addProperties(raycasting_, rawTransferFunction_, ntfs_, annotationButtons_, camera_, lighting_, positionIndicator_, 
         currentVoxelSelectionX_, currentVoxelSelectionY_, currentVoxelSelectionZ_);
-    currentVoxelSelectionX_.setVisible(false);
-    currentVoxelSelectionY_.setVisible(false);
-    currentVoxelSelectionZ_.setVisible(false);
+    currentVoxelSelectionX_.setVisible(false).setReadOnly(true);
+    currentVoxelSelectionY_.setVisible(false).setReadOnly(true);
+    currentVoxelSelectionZ_.setVisible(false).setReadOnly(true);
 }
 
 void DINOVolumeRenderer::initializeResources() {
+    updateButtons();
     utilgl::addShaderDefines(shader_, raycasting_);
     utilgl::addShaderDefines(shader_, camera_);
     utilgl::addShaderDefines(shader_, lighting_);
@@ -120,11 +122,15 @@ void DINOVolumeRenderer::initializeResources() {
     if (similarityPort_.hasData() && numClasses > 0) {
         StrBuffer str3dsampler, str2dsampler, strApply;
         for (size_t i = 0; i < numClasses; ++i) {
+            // Define Uniforms
             str3dsampler.append("uniform sampler3D ntf{0};", i);
             str2dsampler.append("uniform sampler2D transferFunction{0};", i);
+            str2dsampler.append("uniform sampler2D similarityFunction{0};", i);
+            // Generate code to use the transfer functions
             strApply.append("sim[{0}] = texture(ntf{0}, samplePos).x;", i);
-            strApply.append("color[{0}] = applyTF(transferFunction{0}, sim[{0}]);", i);
-            strApply.append("gradients[{0}] = gradientCentralDiff(vec4(sim[{0}]), ntf{0}, volumeParameters, samplePos, 0);", i);
+            strApply.append("alpha[{0}] = applyTF(similarityFunction{0}, sim[{0}]).a;", i);
+            strApply.append("color[{0}] = vec4(1,1,1,alpha[{0}]) * applyTF(transferFunction{0}, sim[{1}]);", i, numClasses);
+            // sim, alpha, color have length numClasses + 1, the numClasses (=last) value is used for TF on raw volume data
         }
         shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_NTF_SAMPLERS", str3dsampler.view());
         shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_TF_SAMPLERS", str2dsampler.view());
@@ -160,7 +166,9 @@ void DINOVolumeRenderer::process() {
     std::vector<Property*> ntfProps = ntfs_.getProperties();
     for (const Property* prop : ntfProps) {
         const TransferFunctionProperty& tfProp = static_cast<const NTFProperty*>(prop)->tf_;
+        const TransferFunctionProperty& simTfProp = static_cast<const NTFProperty*>(prop)->simTf_;
         utilgl::bindAndSetUniforms(shader_, units, tfProp);
+        utilgl::bindAndSetUniforms(shader_, units, simTfProp);
     }
     // Bind remaining stuff
     utilgl::setUniforms(shader_, outport_, camera_, lighting_, raycasting_, positionIndicator_);
@@ -172,25 +180,62 @@ void DINOVolumeRenderer::process() {
 }
 
 void DINOVolumeRenderer::updateButtons() {
-    const std::vector<Property*> ntfProps = ntfs_.getProperties();
-    annotationButtons_.clear();
-    for (Property* prop : ntfProps) {
-        NTFProperty* ntfProp = static_cast<NTFProperty*>(prop);
-        std::string propId = ntfProp->getIdentifier();
-        ButtonProperty* btn = new ButtonProperty(
-            ntfProp->getIdentifier() + "-addCoord", 
-            "Add to " + ntfProp->getDisplayName(),
-            InvalidationLevel::Valid);
-        // ButtonProperty* btn = static_cast<ButtonProperty*>(annotationButtons_.constructProperty(0));
-        btn->onChange([&, propId](){
-            NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(propId));
-            size3_t coord (currentVoxelSelectionX_.get(), 
-                           currentVoxelSelectionY_.get(), 
-                           currentVoxelSelectionZ_.get());
-            ntfProp->addAnnotation(coord);
-        });
-        annotationButtons_.addProperty(btn, true);
+    NetworkLock lock(this);
+    std::map<std::string, Property*> ntfPropMap; // Maps ID -> Property*
+    std::map<std::string, Property*> btnMap;     // Maps NTF-ID -> Property*  (modifies button ID to contain NTF ID)
+    for (Property* prop : ntfs_.getProperties()) {
+        ntfPropMap.insert(std::make_pair(prop->getIdentifier(), prop));
     }
+    for (Property* prop : annotationButtons_.getProperties()) {
+        std::string_view btnId = prop->getIdentifier(); // Crop button ID to the ntf id (remove "-addCoord")
+        btnMap.insert(std::make_pair(btnId.substr(0, btnId.size()-9), prop));
+    }
+    // Remove old buttons
+    for (auto& [id, p] : btnMap) {
+        if (ntfPropMap.count(id) == 0) { // Button not in NTF properties, remove
+            annotationButtons_.removeProperty(id+"-addCoord");
+        }
+    } 
+    // Update existing and add new buttons
+    for (auto entry : ntfPropMap) {
+        std::string id = entry.first;
+        Property* p = entry.second;
+        if (btnMap.count(id) == 1) { // There is a button for this NTF Property, update Name
+            btnMap[id]->setDisplayName("Add to " + p->getDisplayName());
+        } else if (btnMap.count(id) == 0) { // Add button for new NTF Property
+            ButtonProperty* btn = new ButtonProperty(
+                p->getIdentifier() + "-addCoord",
+                "Add to " + p->getDisplayName(),
+                InvalidationLevel::Valid
+            );
+            NTFProperty* ntfProp = static_cast<NTFProperty*>(p);
+            btn->onChange([&, id, ntfProp](){
+                size3_t coord (currentVoxelSelectionX_.get(), 
+                               currentVoxelSelectionY_.get(), 
+                               currentVoxelSelectionZ_.get());
+                ntfProp->addAnnotation(coord);
+            });
+            annotationButtons_.addProperty(btn, true);
+        }
+    }
+    // annotationButtons_.clear();
+    // for (Property* prop : ntfProps) {
+    //     NTFProperty* ntfProp = static_cast<NTFProperty*>(prop);
+    //     std::string propId = ntfProp->getIdentifier();
+    //     ButtonProperty* btn = new ButtonProperty(
+    //         ntfProp->getIdentifier() + "-addCoord", 
+    //         "Add to " + ntfProp->getDisplayName(),
+    //         InvalidationLevel::Valid);
+    //     // ButtonProperty* btn = static_cast<ButtonProperty*>(annotationButtons_.constructProperty(0));
+    //     btn->onChange([&, propId](){
+    //         NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(propId));
+    //         size3_t coord (currentVoxelSelectionX_.get(), 
+    //                        currentVoxelSelectionY_.get(), 
+    //                        currentVoxelSelectionZ_.get());
+    //         ntfProp->addAnnotation(coord);
+    //     });
+    //     annotationButtons_.addProperty(btn, true);
+    // }
 }
 
 }  // namespace inviwo

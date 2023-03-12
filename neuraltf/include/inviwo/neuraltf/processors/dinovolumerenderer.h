@@ -31,6 +31,7 @@
 
 #include <inviwo/neuraltf/neuraltfmoduledefine.h>
 #include <inviwo/core/io/serialization/deserializer.h>        // for Deserializer
+#include <inviwo/core/util/callback.h>
 #include <inviwo/core/processors/processor.h>
 #include <inviwo/core/processors/processorinfo.h>             // for ProcessorInfo
 #include <inviwo/core/ports/volumeport.h>                     // for VolumeInport
@@ -46,6 +47,7 @@
 #include <inviwo/core/properties/volumeindicatorproperty.h>   // for VolumeIndicatorProperty
 
 #include <vector>
+#include <functional>
 
 namespace inviwo {
 

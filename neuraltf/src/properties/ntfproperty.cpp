@@ -46,39 +46,49 @@ void NTFPropertyList::onSetDisplayName(Property* property, const std::string& di
 
 NTFProperty::NTFProperty(std::string_view identifier,
     std::string_view displayName,
+    VolumeInport* inport,
     InvalidationLevel invalidationLevel,
     PropertySemantics semantics) 
     : CompositeProperty(identifier, displayName, invalidationLevel, semantics)
-    , tf_("transferFunction0", "Transfer Function", "Maps similarity to RGBA"_help)
+    , tf_("transferFunction0", "Transfer Function", inport)
+    , simTf_("similarityFunction0", "Similarity Function", "Maps similarity to opacity"_help)
     , similarityExponent_("simexponent", "Similarity Exponent", 2.0, 1.0, 10.0)
-    , similarityThreshold_("simthresh", "Similarity Threshold", 0.3, 0.0, 1.0)
+    , similarityThreshold_("simthresh", "Similarity Threshold", 0.25, 0.0, 1.0)
+    , normalizeBeforeBilateral_("normBeforeBilat", "Normalize before Bilateral Solver", false)
     , annotations_("annotations", "Annotations", 
         std::make_unique<IntSize3Property>("coord", "Coordinate", size3_t(0), size3_t(0), size3_t(2048)),
-        0, ListPropertyUIFlag::Remove)
+        0, ListPropertyUIFlag::Remove, InvalidationLevel::Valid)
+    , volumeInport_(inport)
     {
         tf_.setSerializationMode(PropertySerializationMode::All);
-        addProperties(tf_, similarityExponent_, similarityThreshold_, annotations_);
+        simTf_.setSerializationMode(PropertySerializationMode::All);
+        addProperties(tf_, simTf_, similarityExponent_, similarityThreshold_, normalizeBeforeBilateral_, annotations_);
 }
 
 NTFProperty::NTFProperty(const NTFProperty& other)
     : CompositeProperty(other)
     , tf_(other.tf_)
+    , simTf_(other.simTf_)
     , similarityExponent_(other.similarityExponent_)
     , similarityThreshold_(other.similarityThreshold_)
+    , normalizeBeforeBilateral_(other.normalizeBeforeBilateral_)
     , annotations_(other.annotations_) {
-        addProperties(tf_, similarityExponent_, similarityThreshold_, annotations_);
+        addProperties(tf_, simTf_, similarityExponent_, similarityThreshold_, normalizeBeforeBilateral_, annotations_);
 }
 
 Property& NTFProperty::setIdentifier(const std::string_view identifier){
-    tf_.setIdentifier("transferFunction" + std::string(identifier.size() > 0 ? identifier.substr(3) : ""));
-    LogInfo("setIdentifier(): Setting identifier transferFunction" << std::string(getIdentifier().size() > 0 ? getIdentifier().substr(3) : ""));
+    std::string num = std::string(identifier.size() > 0 ? identifier.substr(3) : "");
+    tf_.setIdentifier("transferFunction" + num);
+    simTf_.setIdentifier("similarityFunction" + num);
     return Property::setIdentifier(identifier);
 }
 
 void NTFProperty::deserialize(Deserializer& d) {
-    CompositeProperty::deserialize(d);
-    LogInfo("deserialize(): Setting identifier transferFunction" << std::string(getIdentifier().size() > 0 ? getIdentifier().substr(3) : ""));
-    tf_.setIdentifier("transferFunction" + std::string(getIdentifier().size() > 0 ? getIdentifier().substr(3) : ""));
+    Property::deserialize(d);
+    std::string num = std::string(getIdentifier().size() > 0 ? getIdentifier().substr(3) : "");
+    tf_.setIdentifier("transferFunction" + num);
+    simTf_.setIdentifier("similarityFunction" + num);
+    PropertyOwner::deserialize(d);
 }
 
 void NTFProperty::addAnnotation(const size3_t coord){
