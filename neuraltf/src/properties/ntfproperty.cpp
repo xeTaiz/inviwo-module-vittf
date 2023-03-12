@@ -38,7 +38,7 @@ void NTFPropertyList::insertProperty(size_t index, Property* property, bool owne
 }
 
 void NTFPropertyList::onSetDisplayName(Property* property, const std::string& displayName) {
-    
+
     auto btnListProp = this->getOwner()->getPropertyByIdentifier("annotationButtons");
     auto btn = dynamic_cast<PropertyOwner*>(btnListProp)->getPropertyByIdentifier(property->getIdentifier()+"-addCoord");
     btn->setDisplayName("Add to " + displayName);
@@ -48,21 +48,23 @@ NTFProperty::NTFProperty(std::string_view identifier,
     std::string_view displayName,
     VolumeInport* inport,
     InvalidationLevel invalidationLevel,
-    PropertySemantics semantics) 
+    PropertySemantics semantics)
     : CompositeProperty(identifier, displayName, invalidationLevel, semantics)
-    , tf_("transferFunction0", "Transfer Function", inport)
-    , simTf_("similarityFunction0", "Similarity Function", "Maps similarity to opacity"_help)
-    , similarityExponent_("simexponent", "Similarity Exponent", 2.0, 1.0, 10.0)
-    , similarityThreshold_("simthresh", "Similarity Threshold", 0.25, 0.0, 1.0)
-    , normalizeBeforeBilateral_("normBeforeBilat", "Normalize before Bilateral Solver", false)
-    , annotations_("annotations", "Annotations", 
+    , tf_("transferFunction0", "Transfer Function", TransferFunction(
+        {{0.01, vec4(1.0f, 1.0f, 1.0f, 0.0f)}, {0.02, vec4(1.0f, 1.0f, 1.0f, 1.0f)}, {1.0, vec4(1.0f, 1.0f, 1.0f, 1.0f)}}), inport)
+    , simTf_("similarityFunction0", "Similarity Function", TransferFunction(
+        {{0.3, vec4(0.0f, 0.0f, 0.0f, 0.0f)}, {0.7, vec4(1.0f, 1.0f, 1.0f, 1.0f)}}))
+    , similarityExponent_("simexponent", "Exponent", 2.0, 1.0, 10.0)
+    , similarityThreshold_("simthresh", "Threshold", 0.25, 0.0, 1.0)
+    , similarityReduction_("simreduction", "Reduction", { {"mean", "Mean", "mean"}, {"max", "Max", "max"} })
+    , annotations_("annotations", "Annotations",
         std::make_unique<IntSize3Property>("coord", "Coordinate", size3_t(0), size3_t(0), size3_t(2048)),
         0, ListPropertyUIFlag::Remove, InvalidationLevel::Valid)
     , volumeInport_(inport)
     {
         tf_.setSerializationMode(PropertySerializationMode::All);
         simTf_.setSerializationMode(PropertySerializationMode::All);
-        addProperties(tf_, simTf_, similarityExponent_, similarityThreshold_, normalizeBeforeBilateral_, annotations_);
+        addProperties(tf_, simTf_, similarityExponent_, similarityThreshold_, similarityReduction_, annotations_);
 }
 
 NTFProperty::NTFProperty(const NTFProperty& other)
@@ -71,9 +73,9 @@ NTFProperty::NTFProperty(const NTFProperty& other)
     , simTf_(other.simTf_)
     , similarityExponent_(other.similarityExponent_)
     , similarityThreshold_(other.similarityThreshold_)
-    , normalizeBeforeBilateral_(other.normalizeBeforeBilateral_)
+    , similarityReduction_(other.similarityReduction_)
     , annotations_(other.annotations_) {
-        addProperties(tf_, simTf_, similarityExponent_, similarityThreshold_, normalizeBeforeBilateral_, annotations_);
+        addProperties(tf_, simTf_, similarityExponent_, similarityThreshold_, similarityReduction_, annotations_);
 }
 
 Property& NTFProperty::setIdentifier(const std::string_view identifier){

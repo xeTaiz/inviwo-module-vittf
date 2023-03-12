@@ -36,6 +36,7 @@
 #include <inviwo/core/properties/stringproperty.h>
 #include <inviwo/core/properties/ordinalproperty.h>
 #include <inviwo/core/properties/boolproperty.h>
+#include <inviwo/core/properties/optionproperty.h>
 #include <inviwo/core/properties/transferfunctionproperty.h>  // for TransferFunctionProperty
 
 #include <string>
@@ -87,9 +88,9 @@ public:
  */
 class IVW_MODULE_NEURALTF_API NTFProperty : public CompositeProperty {
 public:
-    NTFProperty(std::string_view identifier, std::string_view displayName, 
+    NTFProperty(std::string_view identifier, std::string_view displayName,
                 VolumeInport* inport = nullptr,
-                InvalidationLevel invalidationLevel = InvalidationLevel::InvalidOutput, 
+                InvalidationLevel invalidationLevel = InvalidationLevel::InvalidOutput,
                 PropertySemantics semantics = PropertySemantics::Default);
     NTFProperty(const NTFProperty& other);
     ~NTFProperty() = default;
@@ -107,7 +108,7 @@ public:
     TransferFunctionProperty simTf_;
     FloatProperty similarityExponent_;
     FloatProperty similarityThreshold_;
-    BoolProperty normalizeBeforeBilateral_;
+    OptionPropertyString similarityReduction_;
     ListProperty annotations_;
 
     VolumeInport* volumeInport_;
