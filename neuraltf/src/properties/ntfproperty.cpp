@@ -44,6 +44,23 @@ void NTFPropertyList::onSetDisplayName(Property* property, const std::string& di
     btn->setDisplayName("Add to " + displayName);
 }
 
+void NTFProperty::init() {
+    modality_.onChange([&](){
+        LogInfo("modality_.onChange() setting histogram selection");
+        HistogramSelection selection{};
+        selection[modality_.getSelectedValue()] = true;
+        LogInfo(selection);
+        tf_.setHistogramSelection(selection);
+        vec4 modalityWeight (0.0f);
+        LogInfo("Selected Modality: " << modality_.getSelectedValue());
+        modalityWeight[modality_.getSelectedValue()] = 1.0f;
+        modalityWeight_.set(modalityWeight);
+    });
+    tf_.setSerializationMode(PropertySerializationMode::All);
+    simTf_.setSerializationMode(PropertySerializationMode::All);
+    addProperties(tf_, simTf_, similarityExponent_, similarityThreshold_, similarityReduction_, modality_, modalityWeight_, annotations_);
+}
+
 NTFProperty::NTFProperty(std::string_view identifier,
     std::string_view displayName,
     VolumeInport* inport,
@@ -51,21 +68,22 @@ NTFProperty::NTFProperty(std::string_view identifier,
     PropertySemantics semantics)
     : CompositeProperty(identifier, displayName, invalidationLevel, semantics)
     , tf_("transferFunction0", "Transfer Function", TransferFunction(
-        {{0.01, vec4(1.0f, 1.0f, 1.0f, 0.0f)}, {0.02, vec4(1.0f, 1.0f, 1.0f, 1.0f)}, {1.0, vec4(1.0f, 1.0f, 1.0f, 1.0f)}}), inport)
+        {{0.01, vec4(1.0f, 1.0f, 1.0f, 0.0f)}, {0.02, vec4(1.0f, 1.0f, 1.0f, 1.0f)},
+         {0.99, vec4(1.0f, 1.0f, 1.0f, 1.0f)}, {1.0, vec4(1.0f, 1.0f, 1.0f, 0.0f)}}), inport)
     , simTf_("similarityFunction0", "Similarity Function", TransferFunction(
-        {{0.3, vec4(0.0f, 0.0f, 0.0f, 0.0f)}, {0.7, vec4(1.0f, 1.0f, 1.0f, 1.0f)}}))
-    , similarityExponent_("simexponent", "Exponent", 2.0, 1.0, 10.0)
+        {{0.6, vec4(0.0f, 0.0f, 0.0f, 0.0f)}, {0.7, vec4(1.0f, 1.0f, 1.0f, 1.0f)}}))
+    , similarityExponent_("simexponent", "Exponent", 2.5, 1.0, 10.0)
     , similarityThreshold_("simthresh", "Threshold", 0.25, 0.0, 1.0)
     , similarityReduction_("simreduction", "Reduction", { {"mean", "Mean", "mean"}, {"max", "Max", "max"} })
+    , modality_("modality", "Modality", {
+        {"channel0", "Channel 1", 0}, {"channel1", "Channel 2", 1},
+        {"channel2", "Channel 3", 2}, {"channel3", "Channel 4", 3} })
+    , modalityWeight_("modalityWeight", "Modality Weighting", vec4(1.0, 0,0,0), vec4(0), vec4(1))
     , annotations_("annotations", "Annotations",
         std::make_unique<IntSize3Property>("coord", "Coordinate", size3_t(0), size3_t(0), size3_t(2048)),
         0, ListPropertyUIFlag::Remove, InvalidationLevel::Valid)
     , volumeInport_(inport)
-    {
-        tf_.setSerializationMode(PropertySerializationMode::All);
-        simTf_.setSerializationMode(PropertySerializationMode::All);
-        addProperties(tf_, simTf_, similarityExponent_, similarityThreshold_, similarityReduction_, annotations_);
-}
+    { init(); }
 
 NTFProperty::NTFProperty(const NTFProperty& other)
     : CompositeProperty(other)
@@ -74,9 +92,10 @@ NTFProperty::NTFProperty(const NTFProperty& other)
     , similarityExponent_(other.similarityExponent_)
     , similarityThreshold_(other.similarityThreshold_)
     , similarityReduction_(other.similarityReduction_)
-    , annotations_(other.annotations_) {
-        addProperties(tf_, simTf_, similarityExponent_, similarityThreshold_, similarityReduction_, annotations_);
-}
+    , modality_(other.modality_)
+    , modalityWeight_(other.modalityWeight_)
+    , annotations_(other.annotations_)
+    { init(); }
 
 Property& NTFProperty::setIdentifier(const std::string_view identifier){
     std::string num = std::string(identifier.size() > 0 ? identifier.substr(3) : "");

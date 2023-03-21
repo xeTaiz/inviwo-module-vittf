@@ -103,12 +103,15 @@ public:
     virtual void deserialize(Deserializer&) override;
 
     void addAnnotation(const size3_t coord);
+    void init();
 
     TransferFunctionProperty tf_;
     TransferFunctionProperty simTf_;
     FloatProperty similarityExponent_;
     FloatProperty similarityThreshold_;
     OptionPropertyString similarityReduction_;
+    OptionPropertyInt modality_;
+    FloatVec4Property modalityWeight_;
     ListProperty annotations_;
 
     VolumeInport* volumeInport_;
