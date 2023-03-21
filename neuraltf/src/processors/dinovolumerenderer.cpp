@@ -43,6 +43,8 @@
 #include <modules/opengl/texture/textureunit.h>               // for TextureUnitContainer
 #include <modules/opengl/texture/textureutils.h>              // for bindAndSetUniforms, activat...
 #include <modules/opengl/volume/volumeutils.h>                // for bindAndSetUniforms
+#include <modules/opengl/image/layergl.h>                               // for LayerGL
+#include <modules/opengl/texture/texture2d.h>                           // for Texture2D
 
 #include <fmt/core.h>
 #include <inviwo/core/util/zip.h>                             // for enumerate, zipIterator, zipper
@@ -69,10 +71,10 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     , exitPort_{"exit", "Exit-point image"_help}
     , backgroundPort_{"bg", "Input Image to write into"_help}
     , outport_{"outport", "Rendered Image"_help}
-    , ntfs_{"tfs", "Classes", 
-        std::make_unique<NTFProperty>("ntf0", "Class 1", &volumePort_)} 
+    , ntfs_{"tfs", "Classes",
+        std::make_unique<NTFProperty>("ntf0", "Class 1", &volumePort_)}
     , annotationButtons_{"annotationButtons", "Add Annotations",
-        std::make_unique<ButtonProperty>("addCoord", "Add Annotation"), 
+        std::make_unique<ButtonProperty>("addCoord", "Add Annotation"),
         0, ListPropertyUIFlag::Static, InvalidationLevel::Valid}
     , rawTransferFunction_{"rawTransferFunction", "Raw Data Transfer Function", &volumePort_}
     , raycasting_{"raycaster", "Raycasting"}
@@ -101,7 +103,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     similarityPort_.setOptional(true);
     backgroundPort_.setOptional(true);
 
-    addProperties(raycasting_, rawTransferFunction_, ntfs_, annotationButtons_, camera_, lighting_, positionIndicator_, 
+    addProperties(raycasting_, rawTransferFunction_, ntfs_, annotationButtons_, camera_, lighting_, positionIndicator_,
         currentVoxelSelectionX_, currentVoxelSelectionY_, currentVoxelSelectionZ_);
     currentVoxelSelectionX_.setVisible(false).setReadOnly(true);
     currentVoxelSelectionY_.setVisible(false).setReadOnly(true);
@@ -116,6 +118,7 @@ void DINOVolumeRenderer::initializeResources() {
     utilgl::addShaderDefines(shader_, positionIndicator_);
     utilgl::addShaderDefinesBGPort(shader_, backgroundPort_);
 
+    size_t numComponents = volumePort_.getData()->getDataFormat()->getComponents();
     size_t numClasses = similarityPort_.getVectorData().size();
     shader_.getFragmentShaderObject()->addShaderDefine("NUM_CLASSES", std::to_string(numClasses));
 
@@ -129,7 +132,12 @@ void DINOVolumeRenderer::initializeResources() {
             // Generate code to use the transfer functions
             strApply.append("sim[{0}] = texture(ntf{0}, samplePos).x;", i);
             strApply.append("alpha[{0}] = applyTF(similarityFunction{0}, sim[{0}]).a;", i);
-            strApply.append("color[{0}] = vec4(1,1,1,alpha[{0}]) * applyTF(transferFunction{0}, sim[{1}]);", i, numClasses);
+            strApply.append("grad[{0}] = gradientCentralDiff(vec4(sim[{0}]), ntf{0}, volumeParameters, samplePos, 0);", i);
+            if (numComponents < 4) {
+                strApply.append("color[{0}] = vec4(1,1,1,alpha[{0}]) * applyTF(transferFunction{0}, sim[{1}]);", i, numClasses);
+            } else if (numComponents == 4) {
+                strApply.append("color[{0}] = vec4(1,1,1,alpha[{0}]) * vec4(voxel.rgb, 1.0) * applyTF(transferFunction{0}, hue).a;", i, numClasses);
+            }
             // sim, alpha, color have length numClasses + 1, the numClasses (=last) value is used for TF on raw volume data
         }
         shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_NTF_SAMPLERS", str3dsampler.view());
@@ -158,6 +166,14 @@ void DINOVolumeRenderer::process() {
     // Bind Images
     utilgl::bindAndSetUniforms(shader_, units, entryPort_, ImageType::ColorDepthPicking);
     utilgl::bindAndSetUniforms(shader_, units, exitPort_, ImageType::ColorDepth);
+    if (auto normals = entryPort_.getData()->getColorLayer(1)) {
+        utilgl::bindAndSetUniforms(shader_, units,
+                                   *normals->getRepresentation<LayerGL>()->getTexture(),
+                                   std::string_view{"entryNormal"});
+        shader_.setUniform("useNormals", true);
+    } else {
+        shader_.setUniform("useNormals", false);
+    }
     if (backgroundPort_.hasData()) {
         utilgl::bindAndSetUniforms(shader_, units, backgroundPort_, ImageType::ColorDepthPicking);
     }
@@ -195,7 +211,7 @@ void DINOVolumeRenderer::updateButtons() {
         if (ntfPropMap.count(id) == 0) { // Button not in NTF properties, remove
             annotationButtons_.removeProperty(id+"-addCoord");
         }
-    } 
+    }
     // Update existing and add new buttons
     for (auto entry : ntfPropMap) {
         std::string id = entry.first;
@@ -210,8 +226,8 @@ void DINOVolumeRenderer::updateButtons() {
             );
             NTFProperty* ntfProp = static_cast<NTFProperty*>(p);
             btn->onChange([&, id, ntfProp](){
-                size3_t coord (currentVoxelSelectionX_.get(), 
-                               currentVoxelSelectionY_.get(), 
+                size3_t coord (currentVoxelSelectionX_.get(),
+                               currentVoxelSelectionY_.get(),
                                currentVoxelSelectionZ_.get());
                 ntfProp->addAnnotation(coord);
             });
@@ -223,14 +239,14 @@ void DINOVolumeRenderer::updateButtons() {
     //     NTFProperty* ntfProp = static_cast<NTFProperty*>(prop);
     //     std::string propId = ntfProp->getIdentifier();
     //     ButtonProperty* btn = new ButtonProperty(
-    //         ntfProp->getIdentifier() + "-addCoord", 
+    //         ntfProp->getIdentifier() + "-addCoord",
     //         "Add to " + ntfProp->getDisplayName(),
     //         InvalidationLevel::Valid);
     //     // ButtonProperty* btn = static_cast<ButtonProperty*>(annotationButtons_.constructProperty(0));
     //     btn->onChange([&, propId](){
     //         NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(propId));
-    //         size3_t coord (currentVoxelSelectionX_.get(), 
-    //                        currentVoxelSelectionY_.get(), 
+    //         size3_t coord (currentVoxelSelectionX_.get(),
+    //                        currentVoxelSelectionY_.get(),
     //                        currentVoxelSelectionZ_.get());
     //         ntfProp->addAnnotation(coord);
     //     });
