@@ -123,15 +123,7 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
         float hue = hsv.x; //(1.0 - hsv.y) * hsv.z;
         sim[NUM_CLASSES] = voxel.x;
         color[NUM_CLASSES] = applyTF(rawTransferFunction, voxel.x);
-        if (first && useNormals) {
-            first = false;
-            gradient = -entryNormal;
-            grad[NUM_CLASSES] = -entryNormal;
-        } else {
-            gradient = normalize(gradientCentralDiff(voxel, volume, volumeParameters, samplePos, 0));
-            grad[NUM_CLASSES] = gradient;
-        }
-        // gradient = gradientCentralDiffH(voxel, volume, volumeParameters, samplePos, 0);
+        grad[NUM_CLASSES] = gradientCentralDiff(voxel, volume, volumeParameters, samplePos, 0);
 
         // macro defined in MultichanlnelRaycaster::initializeResources()
         APPLY_NTFS
@@ -144,8 +136,11 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
         for (int i = 0; i < NUM_CLASSES + 1; ++i) {
             if(alpha[i] > 0.0 && color[i].a > 0.0){
                 if (setFHD) { tDepth = t; setFHD = false; }
-                //gradient = normalize(grad[i] + 0.5* grad[NUM_CLASSES]);// + grad[NUM_CLASSES]);
-                // color[i].rgb = voxel.rgb ;
+                if (first) {
+                    gradient = -entryNormal;
+                } else {
+                    gradient = grad[i];
+                }
                 color[i].rgb =
                     APPLY_LIGHTING(lighting, color[i].rgb, color[i].rgb, vec3(1.0),
                                     worldSpacePosition, normalize(-gradient), toCameraDir);
@@ -155,6 +150,7 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
                 // result.rgb = voxel.rgb;
             }
         }
+        first = false;
         // early ray termination
         if (result.a > ERT_THRESHOLD) {
             t = tEnd;

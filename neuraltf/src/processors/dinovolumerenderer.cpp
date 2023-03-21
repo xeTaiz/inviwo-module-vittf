@@ -122,19 +122,21 @@ void DINOVolumeRenderer::initializeResources() {
     size_t numClasses = similarityPort_.getVectorData().size();
     shader_.getFragmentShaderObject()->addShaderDefine("NUM_CLASSES", std::to_string(numClasses));
 
+    auto ntfProps = ntfs_.getProperties();
     if (similarityPort_.hasData() && numClasses > 0) {
-        StrBuffer str3dsampler, str2dsampler, strApply;
+        StrBuffer str3dsampler, str2dsampler, strApply, strTfChannel;
         for (size_t i = 0; i < numClasses; ++i) {
             // Define Uniforms
+            int modalityChannel = static_cast<const NTFProperty*>(ntfProps[i])->modality_.getSelectedValue();
             str3dsampler.append("uniform sampler3D ntf{0};", i);
             str2dsampler.append("uniform sampler2D transferFunction{0};", i);
             str2dsampler.append("uniform sampler2D similarityFunction{0};", i);
             // Generate code to use the transfer functions
             strApply.append("sim[{0}] = texture(ntf{0}, samplePos).x;", i);
             strApply.append("alpha[{0}] = applyTF(similarityFunction{0}, sim[{0}]).a;", i);
-            strApply.append("grad[{0}] = gradientCentralDiff(vec4(sim[{0}]), ntf{0}, volumeParameters, samplePos, 0);", i);
+            strApply.append("grad[{0}] = gradientCentralDiff(voxel, volume, volumeParameters, samplePos, {1});", i, modalityChannel);
             if (numComponents < 4) {
-                strApply.append("color[{0}] = vec4(1,1,1,alpha[{0}]) * applyTF(transferFunction{0}, sim[{1}]);", i, numClasses);
+                strApply.append("color[{0}] = vec4(1,1,1,alpha[{0}]) * applyTF(transferFunction{0}, voxel, {2});", i, numClasses, modalityChannel);
             } else if (numComponents == 4) {
                 strApply.append("color[{0}] = vec4(1,1,1,alpha[{0}]) * vec4(voxel.rgb, 1.0) * applyTF(transferFunction{0}, hue).a;", i, numClasses);
             }
