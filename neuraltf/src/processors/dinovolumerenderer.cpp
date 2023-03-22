@@ -76,6 +76,10 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     , annotationButtons_{"annotationButtons", "Add Annotations",
         std::make_unique<ButtonProperty>("addCoord", "Add Annotation"),
         0, ListPropertyUIFlag::Static, InvalidationLevel::Valid}
+    , selectedModality_("selectedModaltiy", "Selected Modality", {
+        {"channel0", "Channel 1", 0}, {"channel1", "Channel 2", 1},
+        {"channel2", "Channel 3", 2}, {"channel3", "Channel 4", 3} })
+    , selectedClass_("selectedClass", "Selected Class")
     , rawTransferFunction_{"rawTransferFunction", "Raw Data Transfer Function", &volumePort_}
     , raycasting_{"raycaster", "Raycasting"}
     , camera_{"camera", "Camera", util::boundingBox(volumePort_)}
@@ -103,8 +107,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     similarityPort_.setOptional(true);
     backgroundPort_.setOptional(true);
 
-    addProperties(raycasting_, rawTransferFunction_, ntfs_, annotationButtons_, camera_, lighting_, positionIndicator_,
-        currentVoxelSelectionX_, currentVoxelSelectionY_, currentVoxelSelectionZ_);
+    addProperties(rawTransferFunction_, ntfs_, annotationButtons_, selectedModality_, selectedClass_, raycasting_, camera_, lighting_, positionIndicator_, currentVoxelSelectionX_, currentVoxelSelectionY_, currentVoxelSelectionZ_);
     currentVoxelSelectionX_.setVisible(false).setReadOnly(true);
     currentVoxelSelectionY_.setVisible(false).setReadOnly(true);
     currentVoxelSelectionZ_.setVisible(false).setReadOnly(true);
@@ -232,28 +235,24 @@ void DINOVolumeRenderer::updateButtons() {
                                currentVoxelSelectionY_.get(),
                                currentVoxelSelectionZ_.get());
                 ntfProp->addAnnotation(coord);
+                selectedClass_.setSelectedIdentifier(id);
             });
             annotationButtons_.addProperty(btn, true);
         }
     }
-    // annotationButtons_.clear();
-    // for (Property* prop : ntfProps) {
-    //     NTFProperty* ntfProp = static_cast<NTFProperty*>(prop);
-    //     std::string propId = ntfProp->getIdentifier();
-    //     ButtonProperty* btn = new ButtonProperty(
-    //         ntfProp->getIdentifier() + "-addCoord",
-    //         "Add to " + ntfProp->getDisplayName(),
-    //         InvalidationLevel::Valid);
-    //     // ButtonProperty* btn = static_cast<ButtonProperty*>(annotationButtons_.constructProperty(0));
-    //     btn->onChange([&, propId](){
-    //         NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(propId));
-    //         size3_t coord (currentVoxelSelectionX_.get(),
-    //                        currentVoxelSelectionY_.get(),
-    //                        currentVoxelSelectionZ_.get());
-    //         ntfProp->addAnnotation(coord);
-    //     });
-    //     annotationButtons_.addProperty(btn, true);
-    // }
+    // Update selectedClass dropdown
+    if (selectedClass_.size() > 0) {
+        const std::string& oldSelection = selectedClass_.getSelectedIdentifier();
+        selectedClass_.clearOptions();
+        for (auto [i, entry] : util::enumerate(ntfPropMap)){
+            selectedClass_.addOption(entry.first, entry.first, i);
+        }
+        selectedClass_.setSelectedIdentifier(oldSelection);
+    } else {
+        for (auto [i, entry] : util::enumerate(ntfPropMap)){
+            selectedClass_.addOption(entry.first, entry.first, i);
+        }
+    }
 }
 
 }  // namespace inviwo

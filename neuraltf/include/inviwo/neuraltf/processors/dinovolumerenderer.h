@@ -60,7 +60,7 @@ public:
 
     virtual void initializeResources() override;
     virtual void process() override;
-    
+
     void updateButtons();
 private:
     Shader shader_;
@@ -74,6 +74,8 @@ private:
 
     NTFPropertyList ntfs_;
     ListProperty annotationButtons_;
+    OptionPropertyInt selectedModality_;
+    OptionPropertySize_t selectedClass_;
 
     TransferFunctionProperty rawTransferFunction_;
     SimpleRaycastingProperty raycasting_;
