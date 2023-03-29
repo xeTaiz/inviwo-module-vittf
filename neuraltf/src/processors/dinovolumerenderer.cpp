@@ -238,6 +238,10 @@ void DINOVolumeRenderer::updateButtons() {
                 selectedClass_.setSelectedIdentifier(id);
             });
             annotationButtons_.addProperty(btn, true);
+            // add callback to ntfProp's modality change that updates selectedModality_
+            ntfProp->modality_.onChange([&, ntfProp](){
+                selectedModality_.setSelectedValue(ntfProp->modality_.getSelectedValue());
+            });
         }
     }
     // Update selectedClass dropdown

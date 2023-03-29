@@ -46,13 +46,10 @@ void NTFPropertyList::onSetDisplayName(Property* property, const std::string& di
 
 void NTFProperty::init() {
     modality_.onChange([&](){
-        LogInfo("modality_.onChange() setting histogram selection");
         HistogramSelection selection{};
         selection[modality_.getSelectedValue()] = true;
-        LogInfo(selection);
         tf_.setHistogramSelection(selection);
         vec4 modalityWeight (0.0f);
-        LogInfo("Selected Modality: " << modality_.getSelectedValue());
         modalityWeight[modality_.getSelectedValue()] = 1.0f;
         modalityWeight_.set(modalityWeight);
     });
