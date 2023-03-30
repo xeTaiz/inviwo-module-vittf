@@ -91,6 +91,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     , currentVoxelSelectionX_("currentVoxelX", "Current Voxel Selection X", 0, 0, 2048, 1, InvalidationLevel::InvalidOutput)
     , currentVoxelSelectionY_("currentVoxelY", "Current Voxel Selection Y", 0, 0, 2048, 1, InvalidationLevel::InvalidOutput)
     , currentVoxelSelectionZ_("currentVoxelZ", "Current Voxel Selection Z", 0, 0, 2048, 1, InvalidationLevel::InvalidOutput)
+    , currentSimilarityTF_("currentSimilarityTF", "Current Similarity TF")
     , cycleModalitySelection_("cycleModality", "Cycle Modality", [this](Event* e){
         if (selectedModality_.size() > 0) {
             auto numChannels = volumePort_.getData()->getDataFormat()->getComponents();
@@ -128,10 +129,17 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     backgroundPort_.setOptional(true);
 
     addProperties(rawTransferFunction_, ntfs_, annotationButtons_, selectedModality_, selectedClass_, raycasting_, camera_, lighting_, positionIndicator_);
-    addProperties(currentVoxelSelectionX_, currentVoxelSelectionY_, currentVoxelSelectionZ_, addAnnotation_, cycleModalitySelection_, cycleClassSelection_);
+    addProperties(currentVoxelSelectionX_, currentVoxelSelectionY_, currentVoxelSelectionZ_, currentSimilarityTF_, addAnnotation_, cycleModalitySelection_, cycleClassSelection_);
     currentVoxelSelectionX_.setVisible(false).setReadOnly(true);
     currentVoxelSelectionY_.setVisible(false).setReadOnly(true);
     currentVoxelSelectionZ_.setVisible(false).setReadOnly(true);
+    currentSimilarityTF_.setVisible(false).setReadOnly(true);
+    selectedClass_.onChange([this](){
+        if (selectedClass_.size() > 0) {
+            NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
+            currentSimilarityTF_.set(ntfProp->simTf_.get());
+        }
+    });
 }
 
 void DINOVolumeRenderer::initializeResources() {

@@ -88,6 +88,7 @@ private:
     IntProperty currentVoxelSelectionX_;
     IntProperty currentVoxelSelectionY_;
     IntProperty currentVoxelSelectionZ_;
+    TransferFunctionProperty currentSimilarityTF_;
     EventProperty cycleModalitySelection_;
     EventProperty cycleClassSelection_;
     EventProperty addAnnotation_;

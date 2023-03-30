@@ -68,7 +68,7 @@ NTFProperty::NTFProperty(std::string_view identifier,
         {{0.01, vec4(1.0f, 1.0f, 1.0f, 0.0f)}, {0.02, vec4(1.0f, 1.0f, 1.0f, 1.0f)},
          {0.99, vec4(1.0f, 1.0f, 1.0f, 1.0f)}, {1.0, vec4(1.0f, 1.0f, 1.0f, 0.0f)}}), inport)
     , simTf_("similarityFunction0", "Similarity Function", TransferFunction(
-        {{0.6, vec4(0.0f, 0.0f, 0.0f, 0.0f)}, {0.7, vec4(1.0f, 1.0f, 1.0f, 1.0f)}}))
+        {{0.6, vec4(0.0f, 1.0f, 0.0f, 0.0f)}, {0.7, vec4(0.0f, 1.0f, 0.0f, 1.0f)}}))
     , similarityExponent_("simexponent", "Exponent", 2.5, 1.0, 10.0)
     , similarityThreshold_("simthresh", "Threshold", 0.25, 0.0, 1.0)
     , similarityReduction_("simreduction", "Reduction", { {"mean", "Mean", "mean"}, {"max", "Max", "max"} })
