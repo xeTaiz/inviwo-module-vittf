@@ -45,6 +45,8 @@
 #include <modules/opengl/volume/volumeutils.h>                // for bindAndSetUniforms
 #include <modules/opengl/image/layergl.h>                               // for LayerGL
 #include <modules/opengl/texture/texture2d.h>                           // for Texture2D
+#include <inviwo/core/interaction/events/keyboardkeys.h>                // for IvwKey, KeyState
+#include <inviwo/core/network/processornetwork.h>    // IWYU pragma: keep
 
 #include <fmt/core.h>
 #include <inviwo/core/util/zip.h>                             // for enumerate, zipIterator, zipper
@@ -71,6 +73,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     , exitPort_{"exit", "Exit-point image"_help}
     , backgroundPort_{"bg", "Input Image to write into"_help}
     , outport_{"outport", "Rendered Image"_help}
+    , simOutport_{"simOutport", "Selected Similarity Volume"_help}
     , ntfs_{"tfs", "Classes",
         std::make_unique<NTFProperty>("ntf0", "Class 1", &volumePort_)}
     , annotationButtons_{"annotationButtons", "Add Annotations",
@@ -87,7 +90,24 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     , positionIndicator_("positionindicator", "Position Indicator")
     , currentVoxelSelectionX_("currentVoxelX", "Current Voxel Selection X", 0, 0, 2048, 1, InvalidationLevel::InvalidOutput)
     , currentVoxelSelectionY_("currentVoxelY", "Current Voxel Selection Y", 0, 0, 2048, 1, InvalidationLevel::InvalidOutput)
-    , currentVoxelSelectionZ_("currentVoxelZ", "Current Voxel Selection Z", 0, 0, 2048, 1, InvalidationLevel::InvalidOutput){
+    , currentVoxelSelectionZ_("currentVoxelZ", "Current Voxel Selection Z", 0, 0, 2048, 1, InvalidationLevel::InvalidOutput)
+    , cycleModalitySelection_("cycleModality", "Cycle Modality", [this](Event* e){
+        if (selectedModality_.size() > 0) {
+            auto numChannels = volumePort_.getData()->getDataFormat()->getComponents();
+            selectedModality_.setSelectedValue((selectedModality_.getSelectedValue() + 1) % std::min(selectedModality_.size(), numChannels));
+        }
+        e->markAsUsed();
+    }, IvwKey::C, KeyState::Press)
+    , cycleClassSelection_("cycleClass", "Cycle Class", [this](Event* e){
+        if (selectedClass_.size() > 0) {
+            selectedClass_.setSelectedValue((selectedClass_.getSelectedValue() + 1) % selectedClass_.size());
+        }
+        e->markAsUsed();
+    }, IvwKey::X, KeyState::Press)
+    , addAnnotation_("addAnnotation", "Add Annotation", [this](Event* e){
+        addAnnotation();
+        e->markAsUsed();
+    }, IvwKey::Space, KeyState::Press){
     // Invalidation Levels
     camera_.setInvalidationLevel(InvalidationLevel::InvalidOutput);
     rawTransferFunction_.setInvalidationLevel(InvalidationLevel::InvalidOutput);
@@ -103,11 +123,12 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     backgroundPort_.onConnect([&]() { this->invalidate(InvalidationLevel::InvalidResources); });
     backgroundPort_.onDisconnect([&]() { this->invalidate(InvalidationLevel::InvalidResources); });
 
-    addPorts(volumePort_, entryPort_, exitPort_, similarityPort_, backgroundPort_, outport_);
+    addPorts(volumePort_, entryPort_, exitPort_, similarityPort_, backgroundPort_, outport_, simOutport_);
     similarityPort_.setOptional(true);
     backgroundPort_.setOptional(true);
 
-    addProperties(rawTransferFunction_, ntfs_, annotationButtons_, selectedModality_, selectedClass_, raycasting_, camera_, lighting_, positionIndicator_, currentVoxelSelectionX_, currentVoxelSelectionY_, currentVoxelSelectionZ_);
+    addProperties(rawTransferFunction_, ntfs_, annotationButtons_, selectedModality_, selectedClass_, raycasting_, camera_, lighting_, positionIndicator_);
+    addProperties(currentVoxelSelectionX_, currentVoxelSelectionY_, currentVoxelSelectionZ_, addAnnotation_, cycleModalitySelection_, cycleClassSelection_);
     currentVoxelSelectionX_.setVisible(false).setReadOnly(true);
     currentVoxelSelectionY_.setVisible(false).setReadOnly(true);
     currentVoxelSelectionZ_.setVisible(false).setReadOnly(true);
@@ -165,7 +186,8 @@ void DINOVolumeRenderer::process() {
     TextureUnitContainer units;
     // Bind Volumes
     utilgl::bindAndSetUniforms(shader_, units, volumePort_);
-    for (auto [p,v] : similarityPort_.getSourceVectorData()){
+    auto similarityMap = similarityPort_.getSourceVectorData();
+    for (auto [p,v] : similarityMap){
         utilgl::bindAndSetUniforms(shader_, units, *v, p->getIdentifier());
     }
     // Bind Images
@@ -198,6 +220,14 @@ void DINOVolumeRenderer::process() {
 
     shader_.deactivate();
     utilgl::deactivateCurrentTarget();
+
+    // Pass through selected similarity Volume
+    size_t selection = selectedClass_.getSelectedValue();
+    if (similarityMap.size() > 0 && selection < similarityMap.size()) {
+        simOutport_.setData(similarityMap[selection].second);
+    } else {
+        simOutport_.setData(Volume(size3_t(8,8,8)));
+    }
 }
 
 void DINOVolumeRenderer::updateButtons() {
@@ -231,6 +261,7 @@ void DINOVolumeRenderer::updateButtons() {
             );
             NTFProperty* ntfProp = static_cast<NTFProperty*>(p);
             btn->onChange([&, id, ntfProp](){
+                if (getNetwork()->isDeserializing()) return;
                 size3_t coord (currentVoxelSelectionX_.get(),
                                currentVoxelSelectionY_.get(),
                                currentVoxelSelectionZ_.get());
@@ -240,12 +271,14 @@ void DINOVolumeRenderer::updateButtons() {
             annotationButtons_.addProperty(btn, true);
             // add callback to ntfProp's modality change that updates selectedModality_
             ntfProp->modality_.onChange([&, ntfProp](){
+                if (getNetwork()->isDeserializing()) return;
                 selectedModality_.setSelectedValue(ntfProp->modality_.getSelectedValue());
             });
         }
     }
     // Update selectedClass dropdown
     if (selectedClass_.size() > 0) {
+        if (getNetwork()->isDeserializing()) return;
         const std::string& oldSelection = selectedClass_.getSelectedIdentifier();
         selectedClass_.clearOptions();
         for (auto [i, entry] : util::enumerate(ntfPropMap)){
@@ -256,6 +289,16 @@ void DINOVolumeRenderer::updateButtons() {
         for (auto [i, entry] : util::enumerate(ntfPropMap)){
             selectedClass_.addOption(entry.first, entry.first, i);
         }
+    }
+}
+
+void DINOVolumeRenderer::addAnnotation() {
+    if (selectedClass_.size() > 0) {
+        size3_t coord (currentVoxelSelectionX_.get(),
+                       currentVoxelSelectionY_.get(),
+                       currentVoxelSelectionZ_.get());
+        NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
+        ntfProp->addAnnotation(coord);
     }
 }
 

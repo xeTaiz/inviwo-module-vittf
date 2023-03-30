@@ -45,6 +45,7 @@
 #include <inviwo/core/properties/simpleraycastingproperty.h>  // for SimpleRaycastingProperty
 #include <inviwo/core/properties/cameraproperty.h>            // for CameraProperty
 #include <inviwo/core/properties/volumeindicatorproperty.h>   // for VolumeIndicatorProperty
+#include <inviwo/core/properties/eventproperty.h>                       // for EventProperty
 
 #include <vector>
 #include <functional>
@@ -62,6 +63,7 @@ public:
     virtual void process() override;
 
     void updateButtons();
+    void addAnnotation();
 private:
     Shader shader_;
 
@@ -71,6 +73,7 @@ private:
     ImageInport exitPort_;
     ImageInport backgroundPort_;
     ImageOutport outport_;
+    VolumeOutport simOutport_;
 
     NTFPropertyList ntfs_;
     ListProperty annotationButtons_;
@@ -85,6 +88,9 @@ private:
     IntProperty currentVoxelSelectionX_;
     IntProperty currentVoxelSelectionY_;
     IntProperty currentVoxelSelectionZ_;
+    EventProperty cycleModalitySelection_;
+    EventProperty cycleClassSelection_;
+    EventProperty addAnnotation_;
 };
 
 }  // namespace inviwo
