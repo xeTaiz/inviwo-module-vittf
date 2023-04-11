@@ -35,7 +35,9 @@
 
 namespace inviwo {
 
-NeuralTFModule::NeuralTFModule(InviwoApplication* app) : InviwoModule(app, "NeuralTF") {
+NeuralTFModule::NeuralTFModule(InviwoApplication* app) 
+    : InviwoModule(app, "NeuralTF") 
+    , pythonProcessorFolderObserver_(app, getPath() + "/python", *this) {
     // Add a directory to the search path of the Shadermanager
     ShaderManager::getPtr()->addShaderSearchPath(getPath(ModulePath::GLSL));
 

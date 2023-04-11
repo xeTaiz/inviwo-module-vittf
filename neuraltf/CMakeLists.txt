@@ -30,3 +30,8 @@ ivw_create_module(${SOURCE_FILES} ${HEADER_FILES} ${SHADER_FILES})
 
 # Add shader directory to install package
 ivw_add_to_module_pack(${CMAKE_CURRENT_SOURCE_DIR}/glsl)
+
+find_package(pybind11 CONFIG REQUIRED)
+target_link_libraries(inviwo-module-neuraltf PUBLIC pybind11::embed Python3::Python)
+
+add_subdirectory(bindings)
