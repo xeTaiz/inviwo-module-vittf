@@ -5,6 +5,7 @@ set(HEADER_FILES
     include/inviwo/neuraltf/neuraltfmoduledefine.h
     include/inviwo/neuraltf/processors/dinovolumerenderer.h
     include/inviwo/neuraltf/properties/ntfproperty.h
+    include/inviwo/neuraltf/bindings/pyneuraltf.h
 )
 ivw_group("Header Files" ${HEADER_FILES})
 
@@ -12,6 +13,7 @@ set(SOURCE_FILES
     src/neuraltfmodule.cpp
     src/processors/dinovolumerenderer.cpp
     src/properties/ntfproperty.cpp
+    src/bindings/pyneuraltf.cpp
 )
 ivw_group("Source Files" ${SOURCE_FILES})
 
@@ -33,5 +35,3 @@ ivw_add_to_module_pack(${CMAKE_CURRENT_SOURCE_DIR}/glsl)
 
 find_package(pybind11 CONFIG REQUIRED)
 target_link_libraries(inviwo-module-neuraltf PUBLIC pybind11::embed Python3::Python)
-
-add_subdirectory(bindings)

@@ -30,8 +30,14 @@
 #include <inviwo/neuraltf/neuraltfmodule.h>
 #include <inviwo/neuraltf/processors/dinovolumerenderer.h>
 #include <inviwo/neuraltf/properties/ntfproperty.h>
+#include <inviwo/neuraltf/bindings/pyneuraltf.h>
+
 #include <modules/basegl/shader_resources.h>
 #include <modules/opengl/shader/shadermanager.h>
+
+#include <pybind11/pybind11.h>
+
+namespace py = pybind11;
 
 namespace inviwo {
 
@@ -74,6 +80,13 @@ NeuralTFModule::NeuralTFModule(InviwoApplication* app)
     // registerPortInspector("NeuralTFOutport", "path/workspace.inv");
     // registerProcessorWidget(std::string processorClassName, std::unique_ptr<ProcessorWidget> processorWidget); 
     // registerDrawer(util::make_unique_ptr<NeuralTFDrawer>());
+    try {
+        py::module ivwpy = pybind11::module::import("inviwopy");
+        py::module ivwProps = ivwpy.attr("properties");
+        exposeNTFBindings(ivwProps);
+    } catch (const std::exception& e) {
+        throw ModuleInitException(e.what(), IVW_CONTEXT);
+    }
 }
 
 }  // namespace inviwo

@@ -64,6 +64,7 @@ public:
 
     void updateButtons();
     void addAnnotation();
+    void removeAnnotation();
 private:
     Shader shader_;
 
@@ -79,6 +80,10 @@ private:
     ListProperty annotationButtons_;
     OptionPropertyInt selectedModality_;
     OptionPropertySize_t selectedClass_;
+    FloatProperty brushSize_;
+    BoolProperty brushMode_;
+    BoolProperty eraseMode_;
+    BoolProperty updateSims_;
 
     TransferFunctionProperty rawTransferFunction_;
     SimpleRaycastingProperty raycasting_;
@@ -88,6 +93,7 @@ private:
     IntProperty currentVoxelSelectionX_;
     IntProperty currentVoxelSelectionY_;
     IntProperty currentVoxelSelectionZ_;
+    IntVec3Property currentVoxelSelection_;
     TransferFunctionProperty currentSimilarityTF_;
     EventProperty cycleModalitySelection_;
     EventProperty cycleClassSelection_;

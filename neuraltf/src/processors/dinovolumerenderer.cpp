@@ -83,6 +83,10 @@ DINOVolumeRenderer::DINOVolumeRenderer()
         {"channel0", "Channel 1", 0}, {"channel1", "Channel 2", 1},
         {"channel2", "Channel 3", 2}, {"channel3", "Channel 4", 3} })
     , selectedClass_("selectedClass", "Selected Class")
+    , brushSize_("brushSize", "Brush Size", 1.0f, 1.0f, 16.0f, 1.0f, InvalidationLevel::Valid)
+    , brushMode_("brushMode", "Brush Mode", false, InvalidationLevel::Valid)
+    , eraseMode_("eraseMode", "Erase Mode", false, InvalidationLevel::Valid)
+    , updateSims_("updateSims", "Update Similarities", false, InvalidationLevel::Valid)
     , rawTransferFunction_{"rawTransferFunction", "Raw Data Transfer Function", &volumePort_}
     , raycasting_{"raycaster", "Raycasting"}
     , camera_{"camera", "Camera", util::boundingBox(volumePort_)}
@@ -91,6 +95,8 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     , currentVoxelSelectionX_("currentVoxelX", "Current Voxel Selection X", 0, 0, 2048, 1, InvalidationLevel::InvalidOutput)
     , currentVoxelSelectionY_("currentVoxelY", "Current Voxel Selection Y", 0, 0, 2048, 1, InvalidationLevel::InvalidOutput)
     , currentVoxelSelectionZ_("currentVoxelZ", "Current Voxel Selection Z", 0, 0, 2048, 1, InvalidationLevel::InvalidOutput)
+    , currentVoxelSelection_("currentVoxel", "Current Voxel Selection", ivec3(128), ivec3(1), ivec3(256), ivec3(1),
+                InvalidationLevel::Valid)
     , currentSimilarityTF_("currentSimilarityTF", "Current Similarity TF")
     , cycleModalitySelection_("cycleModality", "Cycle Modality", [this](Event* e){
         if (selectedModality_.size() > 0) {
@@ -108,7 +114,8 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     , addAnnotation_("addAnnotation", "Add Annotation", [this](Event* e){
         addAnnotation();
         e->markAsUsed();
-    }, IvwKey::Space, KeyState::Press){
+    }, IvwKey::Space, KeyState::Press)
+    {
     // Invalidation Levels
     camera_.setInvalidationLevel(InvalidationLevel::InvalidOutput);
     rawTransferFunction_.setInvalidationLevel(InvalidationLevel::InvalidOutput);
@@ -128,12 +135,26 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     similarityPort_.setOptional(true);
     backgroundPort_.setOptional(true);
 
-    addProperties(rawTransferFunction_, ntfs_, annotationButtons_, selectedModality_, selectedClass_, raycasting_, camera_, lighting_, positionIndicator_);
-    addProperties(currentVoxelSelectionX_, currentVoxelSelectionY_, currentVoxelSelectionZ_, currentSimilarityTF_, addAnnotation_, cycleModalitySelection_, cycleClassSelection_);
+    addProperties(rawTransferFunction_, ntfs_, annotationButtons_, selectedModality_, selectedClass_, brushSize_, brushMode_, eraseMode_, updateSims_, raycasting_, camera_, lighting_, positionIndicator_);
+    addProperties(currentVoxelSelectionX_, currentVoxelSelectionY_, currentVoxelSelectionZ_, currentVoxelSelection_, currentSimilarityTF_, addAnnotation_, cycleModalitySelection_, cycleClassSelection_);
     currentVoxelSelectionX_.setVisible(false).setReadOnly(true);
     currentVoxelSelectionY_.setVisible(false).setReadOnly(true);
     currentVoxelSelectionZ_.setVisible(false).setReadOnly(true);
+    currentVoxelSelection_.setVisible(false).setReadOnly(true);
     currentSimilarityTF_.setVisible(false).setReadOnly(true);
+    currentVoxelSelection_.onChange([this](){
+        if (selectedClass_.size() > 0 && brushMode_.get()) {
+            NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
+            if (eraseMode_.get()){
+                LogInfo("Remove Annotation at " << currentVoxelSelection_.get() << " from " << ntfProp->getIdentifier());
+                ntfProp->removeAnnotation(size3_t(currentVoxelSelection_.get()), brushSize_.get() / 2.0);
+            } else {
+                LogInfo("Adding Annotation at " << currentVoxelSelection_.get() << " from " << ntfProp->getIdentifier());
+                size3_t volDim = volumePort_.getData()->getDimensions();
+                ntfProp->addAnnotation(size3_t(currentVoxelSelection_.get()), volDim, brushSize_.get() / 2.0);
+            }
+        }
+    });
     selectedClass_.onChange([this](){
         if (selectedClass_.size() > 0) {
             NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
@@ -232,6 +253,18 @@ void DINOVolumeRenderer::process() {
     // Pass through selected similarity Volume
     size_t selection = selectedClass_.getSelectedValue();
     if (similarityMap.size() > 0 && selection < similarityMap.size()) {
+        // auto ntfID = similarityMap[selection].first->getIdentifier();
+        // auto simVol = similarityMap[selection].second;
+        // NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(ntfID));
+        // Volume v = Volume(*similarityMap[selection].second);
+        // auto vram = std::shared_ptr<VolumeRAM>(simVol->getRepresentation<VolumeRAM>()->clone());
+        // double val = simVol->getDataFormat()->getMax();
+        // vec3 factor = vec3(simVol->getDimensions()) / vec3(volumePort_.getData()->getDimensions());
+        // for (const size3_t pos : ntfProp->getAnnotatedVoxels()){
+        //     size3_t lowresPos = size3_t(glm::round(factor * vec3(pos)));
+        //     vram->setFromDouble(lowresPos, val);
+        //     LogInfo("Setting output Volume's voxel at " << lowresPos << " to " << val);
+        // }
         simOutport_.setData(similarityMap[selection].second);
     } else {
         simOutport_.setData(Volume(size3_t(8,8,8)));
@@ -270,10 +303,9 @@ void DINOVolumeRenderer::updateButtons() {
             NTFProperty* ntfProp = static_cast<NTFProperty*>(p);
             btn->onChange([&, id, ntfProp](){
                 if (getNetwork()->isDeserializing()) return;
-                size3_t coord (currentVoxelSelectionX_.get(),
-                               currentVoxelSelectionY_.get(),
-                               currentVoxelSelectionZ_.get());
-                ntfProp->addAnnotation(coord);
+                size3_t volDim = volumePort_.getData()->getDimensions();
+                size3_t coord (currentVoxelSelection_.get());
+                ntfProp->addAnnotation(coord, volDim);
                 selectedClass_.setSelectedIdentifier(id);
             });
             annotationButtons_.addProperty(btn, true);
@@ -302,11 +334,18 @@ void DINOVolumeRenderer::updateButtons() {
 
 void DINOVolumeRenderer::addAnnotation() {
     if (selectedClass_.size() > 0) {
-        size3_t coord (currentVoxelSelectionX_.get(),
-                       currentVoxelSelectionY_.get(),
-                       currentVoxelSelectionZ_.get());
+        size3_t volDim = volumePort_.getData()->getDimensions();
+        size3_t coord (currentVoxelSelection_.get());
         NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
-        ntfProp->addAnnotation(coord);
+        ntfProp->addAnnotation(coord, volDim, brushSize_.get() / 2.0);
+    }
+}
+
+void DINOVolumeRenderer::removeAnnotation() {
+    if (selectedClass_.size() > 0) {
+        size3_t coord (currentVoxelSelection_.get());
+        NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
+        ntfProp->removeAnnotation(coord, brushSize_.get() / 2.0);
     }
 }
 

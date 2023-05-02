@@ -29,6 +29,8 @@
 
 #include <inviwo/neuraltf/properties/ntfproperty.h>
 #include <inviwo/core/properties/valuewrapper.h>              // for PropertySerializa...
+#include <unordered_set>
+
 
 namespace inviwo {
 
@@ -109,8 +111,43 @@ void NTFProperty::deserialize(Deserializer& d) {
     PropertyOwner::deserialize(d);
 }
 
-void NTFProperty::addAnnotation(const size3_t coord){
-    static_cast<IntSize3Property*>(annotations_.constructProperty(0))->set(coord);
+void NTFProperty::addAnnotation(const size3_t coord, const size3_t volDims, const float distanceThreshold){
+    // static_cast<IntSize3Property*>(annotations_.constructProperty(0))->set(coord);
+    if (distanceThreshold > 1.0f) {
+        size_t distFloor = std::floor(distanceThreshold);
+        size3_t minCoord = glm::clamp(coord - size3_t(distFloor), size3_t(0), volDims - size3_t(1));
+        size3_t maxCoord = glm::clamp(coord + size3_t(distFloor), size3_t(0), volDims - size3_t(1));
+        LogInfo("distFloor: " << distFloor);
+        for (size_t x = minCoord.x; x <= maxCoord.x; ++x) {
+            for (size_t y = minCoord.y; y <= maxCoord.y; ++y) {
+                for (size_t z = minCoord.z; z <= maxCoord.z ; ++z) {
+                    if (glm::distance(vec3(coord), vec3(x, y, z)) <= distanceThreshold) {
+                        annotatedVoxels_.insert(size3_t(x, y, z));
+                        LogInfo(size3_t(x, y, z) << " inserted.");
+                    }
+                }
+            }
+        }
+    } else {
+        annotatedVoxels_.insert(coord);
+    }
+    LogInfo("Annotated Voxels: " << annotatedVoxels_.size());
+}
+
+void NTFProperty::removeAnnotation(const size3_t coord, const float distanceThreshold){
+    for (auto it = annotatedVoxels_.begin(); it != annotatedVoxels_.end();) {
+        if (glm::distance(vec3(*it), vec3(coord)) <= distanceThreshold) {
+            LogInfo(*it << " removed.");
+            it = annotatedVoxels_.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    LogInfo("Annotated Voxels: " << annotatedVoxels_.size());
+}
+
+const std::vector<size3_t> NTFProperty::getAnnotatedVoxels() const {
+    return std::vector<size3_t>(annotatedVoxels_.begin(), annotatedVoxels_.end());
 }
 
 const std::string NTFProperty::classIdentifier = "org.inviwo.NTFProperty";

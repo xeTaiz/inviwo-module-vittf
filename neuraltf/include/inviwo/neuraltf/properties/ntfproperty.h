@@ -41,6 +41,7 @@
 
 #include <string>
 #include <string_view>
+#include <unordered_set>
 
 namespace inviwo {
 
@@ -102,8 +103,23 @@ public:
     virtual Property& setIdentifier(const std::string_view identifier) override;
     virtual void deserialize(Deserializer&) override;
 
-    void addAnnotation(const size3_t coord);
+    void addAnnotation(const size3_t coord, const size3_t volDims, const float distanceThreshold = 1e-4f);
+    void removeAnnotation(const size3_t coord, const float distanceThreshold = 1e-4f);
+    const std::vector<size3_t> getAnnotatedVoxels() const;
     void init();
+
+    // Getter & Setter
+    float getSimilarityExponent() const { return similarityExponent_.get(); }
+    void setSimilarityExponent(float value) { similarityExponent_.set(value); }
+    float getSimilarityThreshold() const { return similarityThreshold_.get(); }
+    void setSimilarityThreshold(float value) { similarityThreshold_.set(value); }
+    std::string getSimilarityReduction() const { return similarityReduction_.getSelectedValue(); }
+    void setSimilarityReduction(std::string value) { similarityReduction_.setSelectedValue(value); }
+    int getModality() const { return modality_.getSelectedValue(); }
+    void setModality(int value) { modality_.setSelectedValue(value); }
+    vec4 getModalityWeight() const { return modalityWeight_.get(); }
+    void setModalityWeight(vec4 value) { modalityWeight_.set(value); }
+
 
     TransferFunctionProperty tf_;
     TransferFunctionProperty simTf_;
@@ -115,6 +131,9 @@ public:
     ListProperty annotations_;
 
     VolumeInport* volumeInport_;
+
+private:
+    std::unordered_set<size3_t> annotatedVoxels_;
 };
 
 }  // namespace inviwo
