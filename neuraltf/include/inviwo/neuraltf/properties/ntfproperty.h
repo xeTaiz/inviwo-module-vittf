@@ -35,6 +35,7 @@
 #include <inviwo/core/properties/propertysemantics.h>  // for PropertySemantics, PropertySemanti...
 #include <inviwo/core/properties/stringproperty.h>
 #include <inviwo/core/properties/ordinalproperty.h>
+#include <inviwo/core/properties/minmaxproperty.h>
 #include <inviwo/core/properties/boolproperty.h>
 #include <inviwo/core/properties/optionproperty.h>
 #include <inviwo/core/properties/transferfunctionproperty.h>  // for TransferFunctionProperty
@@ -119,21 +120,27 @@ public:
     void setModality(int value) { modality_.setSelectedValue(value); }
     vec4 getModalityWeight() const { return modalityWeight_.get(); }
     void setModalityWeight(vec4 value) { modalityWeight_.set(value); }
-
+    bool getRequiresUpdate() const { return requiresUpdate_; }
+    void setRequiresUpdate(bool value) { requiresUpdate_ = value; }
+    vec2 getSimilarityRamp() const { return similarityRamp_.get(); }
+    void setSimilarityRamp(vec2 value) { similarityRamp_.set(value); }
 
     TransferFunctionProperty tf_;
     TransferFunctionProperty simTf_;
     FloatProperty similarityExponent_;
     FloatProperty similarityThreshold_;
+    FloatMinMaxProperty similarityRamp_;
     OptionPropertyString similarityReduction_;
     OptionPropertyInt modality_;
     FloatVec4Property modalityWeight_;
     ListProperty annotations_;
+    IntSizeTProperty annotationCount_;
 
     VolumeInport* volumeInport_;
 
 private:
     std::unordered_set<size3_t> annotatedVoxels_;
+    bool requiresUpdate_;
 };
 
 }  // namespace inviwo

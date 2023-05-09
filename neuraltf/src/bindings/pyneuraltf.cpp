@@ -31,7 +31,8 @@ void exposeNTFBindings(py::module& m) {
         .def_property("modalityWeight", &NTFProperty::getModalityWeight, &NTFProperty::setModalityWeight)
         .def_property("similarityExponent", &NTFProperty::getSimilarityExponent, &NTFProperty::setSimilarityExponent)
         .def_property("similarityThreshold", &NTFProperty::getSimilarityThreshold, &NTFProperty::setSimilarityThreshold)
-        .def_property("similarityReduction", &NTFProperty::getSimilarityReduction, &NTFProperty::setSimilarityReduction);
+        .def_property("similarityReduction", &NTFProperty::getSimilarityReduction, &NTFProperty::setSimilarityReduction)
+        .def_property("requiresUpdate", &NTFProperty::getRequiresUpdate, &NTFProperty::setRequiresUpdate);
 }
 
 }  // namespace inviwo

@@ -3,3 +3,4 @@
 *.qch
 .vscode
 *.code-workspace
+**/.mypy_cache

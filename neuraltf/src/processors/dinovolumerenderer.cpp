@@ -113,6 +113,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     }, IvwKey::X, KeyState::Press)
     , addAnnotation_("addAnnotation", "Add Annotation", [this](Event* e){
         addAnnotation();
+        updateSims_.set(true);
         e->markAsUsed();
     }, IvwKey::Space, KeyState::Press)
     {
@@ -125,7 +126,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     similarityPort_.onChange([this]() { initializeResources(); });
     ntfs_.setSerializationMode(PropertySerializationMode::All);
     ntfs_.setInvalidationLevel(InvalidationLevel::Valid);
-    ntfs_.onChange([this](){ updateButtons(); invalidate(InvalidationLevel::InvalidOutput); });
+    ntfs_.onChange([this](){ initializeResources(); });
 
     shader_.onReload([this]() { initializeResources(); });
     backgroundPort_.onConnect([&]() { this->invalidate(InvalidationLevel::InvalidResources); });
@@ -146,10 +147,8 @@ DINOVolumeRenderer::DINOVolumeRenderer()
         if (selectedClass_.size() > 0 && brushMode_.get()) {
             NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
             if (eraseMode_.get()){
-                LogInfo("Remove Annotation at " << currentVoxelSelection_.get() << " from " << ntfProp->getIdentifier());
                 ntfProp->removeAnnotation(size3_t(currentVoxelSelection_.get()), brushSize_.get() / 2.0);
             } else {
-                LogInfo("Adding Annotation at " << currentVoxelSelection_.get() << " from " << ntfProp->getIdentifier());
                 size3_t volDim = volumePort_.getData()->getDimensions();
                 ntfProp->addAnnotation(size3_t(currentVoxelSelection_.get()), volDim, brushSize_.get() / 2.0);
             }
@@ -158,7 +157,16 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     selectedClass_.onChange([this](){
         if (selectedClass_.size() > 0) {
             NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
-            currentSimilarityTF_.set(ntfProp->simTf_.get());
+            vec2 simRange = ntfProp->getSimilarityRamp();
+            if (simRange.y < 0.99) {
+                currentSimilarityTF_.set(TransferFunction(
+                    {{simRange.x, vec4(0.f, 1.f, 0.f, 0.f)}, {simRange.y, vec4(0.f, 1.f, 0.f, 1.f)},
+                     {0.99,       vec4(0.f, 1.f, 0.f, 1.f)}, {1.0,        vec4(0.f, 0.f, 1.f, 1.f)}}));
+            } else {
+                currentSimilarityTF_.set(TransferFunction(
+                    {{simRange.x, vec4(0.f, 1.f, 0.f, 0.f)}, {simRange.y, vec4(0.f, 1.f, 0.f, 1.f)}}));
+            }
+            // currentSimilarityTF_.set(ntfProp->simTf_.get());
         }
     });
 }
@@ -180,18 +188,21 @@ void DINOVolumeRenderer::initializeResources() {
         StrBuffer str3dsampler, str2dsampler, strApply, strTfChannel;
         for (size_t i = 0; i < numClasses; ++i) {
             // Define Uniforms
-            int modalityChannel = static_cast<const NTFProperty*>(ntfProps[i])->modality_.getSelectedValue();
+            auto ntfProp (static_cast<const NTFProperty*>(ntfProps[i]));
+            int modalityChannel = ntfProp->modality_.getSelectedValue();
+            vec2 simRange = ntfProp->getSimilarityRamp();
             str3dsampler.append("uniform sampler3D ntf{0};", i);
             str2dsampler.append("uniform sampler2D transferFunction{0};", i);
-            str2dsampler.append("uniform sampler2D similarityFunction{0};", i);
+            // str2dsampler.append("uniform sampler2D similarityFunction{0};", i);
             // Generate code to use the transfer functions
             strApply.append("sim[{0}] = texture(ntf{0}, samplePos).x;", i);
-            strApply.append("alpha[{0}] = applyTF(similarityFunction{0}, sim[{0}]).a;", i);
+            // strApply.append("alpha[{0}] = applyTF(similarityFunction{0}, sim[{0}]).a;", i);
+            strApply.append("alpha[{0}] = mix(0.0, 1.0, clamp((sim[{0}] - {1}) / {2}, 0.0, 1.0));", i, simRange.x, std::max(simRange.y - simRange.x, 1e-5f));
             strApply.append("grad[{0}] = gradientCentralDiff(voxel, volume, volumeParameters, samplePos, {1});", i, modalityChannel);
             if (numComponents < 4) {
                 strApply.append("color[{0}] = vec4(1,1,1,alpha[{0}]) * applyTF(transferFunction{0}, voxel, {2});", i, numClasses, modalityChannel);
             } else if (numComponents == 4) {
-                strApply.append("color[{0}] = vec4(1,1,1,alpha[{0}]) * vec4(voxel.rgb, 1.0) * applyTF(transferFunction{0}, hue).a;", i, numClasses);
+                strApply.append("color[{0}] = vec4(voxel.rgb, alpha[{0}]);", i);
             }
             // sim, alpha, color have length numClasses + 1, the numClasses (=last) value is used for TF on raw volume data
         }
@@ -238,9 +249,9 @@ void DINOVolumeRenderer::process() {
     std::vector<Property*> ntfProps = ntfs_.getProperties();
     for (const Property* prop : ntfProps) {
         const TransferFunctionProperty& tfProp = static_cast<const NTFProperty*>(prop)->tf_;
-        const TransferFunctionProperty& simTfProp = static_cast<const NTFProperty*>(prop)->simTf_;
+        // const TransferFunctionProperty& simTfProp = static_cast<const NTFProperty*>(prop)->simTf_;
         utilgl::bindAndSetUniforms(shader_, units, tfProp);
-        utilgl::bindAndSetUniforms(shader_, units, simTfProp);
+        // utilgl::bindAndSetUniforms(shader_, units, simTfProp);
     }
     // Bind remaining stuff
     utilgl::setUniforms(shader_, outport_, camera_, lighting_, raycasting_, positionIndicator_);
@@ -314,20 +325,22 @@ void DINOVolumeRenderer::updateButtons() {
                 if (getNetwork()->isDeserializing()) return;
                 selectedModality_.setSelectedValue(ntfProp->modality_.getSelectedValue());
             });
+            ntfProp->similarityRamp_.onChange([&, ntfProp](){
+                if (getNetwork()->isDeserializing()) return;
+                updateSims_.set(true);
+            });
         }
     }
     // Update selectedClass dropdown
-    if (selectedClass_.size() > 0) {
-        if (getNetwork()->isDeserializing()) return;
-        const std::string& oldSelection = selectedClass_.getSelectedIdentifier();
+    if (getNetwork()->isDeserializing()) return;
+    // Update selectedClass dropdown if necessary, then set selected class to last added
+    if (ntfPropMap.size() != selectedClass_.size()) {
         selectedClass_.clearOptions();
         for (auto [i, entry] : util::enumerate(ntfPropMap)){
             selectedClass_.addOption(entry.first, entry.first, i);
         }
-        selectedClass_.setSelectedIdentifier(oldSelection);
-    } else {
-        for (auto [i, entry] : util::enumerate(ntfPropMap)){
-            selectedClass_.addOption(entry.first, entry.first, i);
+        if (ntfPropMap.size() > 0) {
+            selectedClass_.setSelectedIdentifier(ntfPropMap.rbegin()->first);
         }
     }
 }
@@ -348,5 +361,4 @@ void DINOVolumeRenderer::removeAnnotation() {
         ntfProp->removeAnnotation(coord, brushSize_.get() / 2.0);
     }
 }
-
 }  // namespace inviwo

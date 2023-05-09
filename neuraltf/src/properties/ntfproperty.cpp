@@ -40,7 +40,6 @@ void NTFPropertyList::insertProperty(size_t index, Property* property, bool owne
 }
 
 void NTFPropertyList::onSetDisplayName(Property* property, const std::string& displayName) {
-
     auto btnListProp = this->getOwner()->getPropertyByIdentifier("annotationButtons");
     auto btn = dynamic_cast<PropertyOwner*>(btnListProp)->getPropertyByIdentifier(property->getIdentifier()+"-addCoord");
     btn->setDisplayName("Add to " + displayName);
@@ -57,7 +56,15 @@ void NTFProperty::init() {
     });
     tf_.setSerializationMode(PropertySerializationMode::All);
     simTf_.setSerializationMode(PropertySerializationMode::All);
-    addProperties(tf_, simTf_, similarityExponent_, similarityThreshold_, similarityReduction_, modality_, modalityWeight_, annotations_);
+    addProperties(tf_, simTf_, similarityRamp_, similarityExponent_, similarityThreshold_, similarityReduction_, modality_, modalityWeight_, annotationCount_, annotations_);
+    annotations_.setCollapsed(true);
+
+    // Hide currently deprecated properties TODO: remove or use
+    simTf_.setVisible(false);
+    similarityExponent_.setVisible(false);
+    similarityThreshold_.setVisible(false);
+    annotations_.setVisible(false);
+    annotationCount_.setReadOnly(true);
 }
 
 NTFProperty::NTFProperty(std::string_view identifier,
@@ -73,6 +80,7 @@ NTFProperty::NTFProperty(std::string_view identifier,
         {{0.6, vec4(0.0f, 1.0f, 0.0f, 0.0f)}, {0.7, vec4(0.0f, 1.0f, 0.0f, 1.0f)}}))
     , similarityExponent_("simexponent", "Exponent", 2.5, 1.0, 10.0)
     , similarityThreshold_("simthresh", "Threshold", 0.25, 0.0, 1.0)
+    , similarityRamp_("simramp", "Ramp", 0.6, 0.7, 0.0, 1.0, 0.05, 1e-5f)
     , similarityReduction_("simreduction", "Reduction", { {"mean", "Mean", "mean"}, {"max", "Max", "max"} })
     , modality_("modality", "Modality", {
         {"channel0", "Channel 1", 0}, {"channel1", "Channel 2", 1},
@@ -81,7 +89,9 @@ NTFProperty::NTFProperty(std::string_view identifier,
     , annotations_("annotations", "Annotations",
         std::make_unique<IntSize3Property>("coord", "Coordinate", size3_t(0), size3_t(0), size3_t(2048)),
         0, ListPropertyUIFlag::Remove, InvalidationLevel::Valid)
+    , annotationCount_("annotationCount", "Annotation Counter", 0, 0, 10000)
     , volumeInport_(inport)
+    , requiresUpdate_(false)
     { init(); }
 
 NTFProperty::NTFProperty(const NTFProperty& other)
@@ -90,10 +100,14 @@ NTFProperty::NTFProperty(const NTFProperty& other)
     , simTf_(other.simTf_)
     , similarityExponent_(other.similarityExponent_)
     , similarityThreshold_(other.similarityThreshold_)
+    , similarityRamp_("simramp", "Ramp", 0.6, 0.7, 0.0, 1.0, 0.05, 1e-5f)
     , similarityReduction_(other.similarityReduction_)
     , modality_(other.modality_)
     , modalityWeight_(other.modalityWeight_)
     , annotations_(other.annotations_)
+    , volumeInport_(other.volumeInport_)
+    , annotationCount_("annotationCount", "Annotation Counter", 0, 0, 10000)
+    , requiresUpdate_(other.requiresUpdate_)
     { init(); }
 
 Property& NTFProperty::setIdentifier(const std::string_view identifier){
@@ -113,6 +127,7 @@ void NTFProperty::deserialize(Deserializer& d) {
 
 void NTFProperty::addAnnotation(const size3_t coord, const size3_t volDims, const float distanceThreshold){
     // static_cast<IntSize3Property*>(annotations_.constructProperty(0))->set(coord);
+    size_t oldSz = annotatedVoxels_.size();
     if (distanceThreshold > 1.0f) {
         size_t distFloor = std::floor(distanceThreshold);
         size3_t minCoord = glm::clamp(coord - size3_t(distFloor), size3_t(0), volDims - size3_t(1));
@@ -123,7 +138,6 @@ void NTFProperty::addAnnotation(const size3_t coord, const size3_t volDims, cons
                 for (size_t z = minCoord.z; z <= maxCoord.z ; ++z) {
                     if (glm::distance(vec3(coord), vec3(x, y, z)) <= distanceThreshold) {
                         annotatedVoxels_.insert(size3_t(x, y, z));
-                        LogInfo(size3_t(x, y, z) << " inserted.");
                     }
                 }
             }
@@ -131,19 +145,25 @@ void NTFProperty::addAnnotation(const size3_t coord, const size3_t volDims, cons
     } else {
         annotatedVoxels_.insert(coord);
     }
-    LogInfo("Annotated Voxels: " << annotatedVoxels_.size());
+    if (oldSz < annotatedVoxels_.size()) {
+        requiresUpdate_ = true;
+        annotationCount_.set(annotatedVoxels_.size());
+    }
 }
 
 void NTFProperty::removeAnnotation(const size3_t coord, const float distanceThreshold){
+    size_t oldSz = annotatedVoxels_.size();
     for (auto it = annotatedVoxels_.begin(); it != annotatedVoxels_.end();) {
         if (glm::distance(vec3(*it), vec3(coord)) <= distanceThreshold) {
-            LogInfo(*it << " removed.");
             it = annotatedVoxels_.erase(it);
         } else {
             ++it;
         }
     }
-    LogInfo("Annotated Voxels: " << annotatedVoxels_.size());
+    if (oldSz > annotatedVoxels_.size()) {
+        requiresUpdate_ = true;
+        annotationCount_.set(annotatedVoxels_.size());
+    }
 }
 
 const std::vector<size3_t> NTFProperty::getAnnotatedVoxels() const {
