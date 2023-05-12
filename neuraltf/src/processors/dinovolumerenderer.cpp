@@ -154,21 +154,22 @@ DINOVolumeRenderer::DINOVolumeRenderer()
             }
         }
     });
-    selectedClass_.onChange([this](){
-        if (selectedClass_.size() > 0) {
-            NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
-            vec2 simRange = ntfProp->getSimilarityRamp();
-            if (simRange.y < 0.99) {
-                currentSimilarityTF_.set(TransferFunction(
-                    {{simRange.x, vec4(0.f, 1.f, 0.f, 0.f)}, {simRange.y, vec4(0.f, 1.f, 0.f, 1.f)},
-                     {0.99,       vec4(0.f, 1.f, 0.f, 1.f)}, {1.0,        vec4(0.f, 0.f, 1.f, 1.f)}}));
-            } else {
-                currentSimilarityTF_.set(TransferFunction(
-                    {{simRange.x, vec4(0.f, 1.f, 0.f, 0.f)}, {simRange.y, vec4(0.f, 1.f, 0.f, 1.f)}}));
-            }
-            // currentSimilarityTF_.set(ntfProp->simTf_.get());
+    selectedClass_.onChange([this](){ updateCurrentSimilarityTF(); });
+}
+
+void DINOVolumeRenderer::updateCurrentSimilarityTF() {
+    if (selectedClass_.size() > 0) {
+        NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
+        vec2 simRange = ntfProp->getSimilarityRamp();
+        if (simRange.y < 0.99) {
+            currentSimilarityTF_.set(TransferFunction(
+                {{simRange.x, vec4(0.f, 1.f, 0.f, 0.f)}, {simRange.y, vec4(0.f, 1.f, 0.f, 1.f)},
+                    {0.99,       vec4(0.f, 1.f, 0.f, 1.f)}, {1.0,        vec4(0.f, 0.f, 1.f, 1.f)}}));
+        } else {
+            currentSimilarityTF_.set(TransferFunction(
+                {{simRange.x, vec4(0.f, 1.f, 0.f, 0.f)}, {simRange.y, vec4(0.f, 1.f, 0.f, 1.f)}}));
         }
-    });
+    }
 }
 
 void DINOVolumeRenderer::initializeResources() {
@@ -328,6 +329,7 @@ void DINOVolumeRenderer::updateButtons() {
             ntfProp->similarityRamp_.onChange([&, ntfProp](){
                 if (getNetwork()->isDeserializing()) return;
                 updateSims_.set(true);
+                updateCurrentSimilarityTF();
             });
         }
     }

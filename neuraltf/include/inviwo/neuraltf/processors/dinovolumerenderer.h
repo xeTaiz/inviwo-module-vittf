@@ -62,6 +62,7 @@ public:
     virtual void initializeResources() override;
     virtual void process() override;
 
+    void updateCurrentSimilarityTF();
     void updateButtons();
     void addAnnotation();
     void removeAnnotation();
