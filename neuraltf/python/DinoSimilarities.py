@@ -405,6 +405,11 @@ class DinoSimilarities(ivw.Processor):
         if self.inport.isConnected():
             if self.cachePathOverride.value != '' and Path(self.cachePathOverride.value).exists():
                 self.cache_path = Path(self.cachePathOverride.value)
+                if self.cache_path != self.loaded_cache_path:
+                    self.feat_vol = None
+                    self.similarities.clear()
+                    self.loaded_cache_path = None
+                    self.initializeResources()
             else:
                 data_path = Path(self.inport.getConnectedOutport().processor.properties['filename'].value)
                 clean_name = data_path.stem.replace(" ", "").replace("(", "").replace(")", "").replace("[", "").replace("]", "")
@@ -488,6 +493,7 @@ class DinoSimilarities(ivw.Processor):
 
     def loadCache(self, cache_path, attention_features='k'):
         print('loadCache() from ', cache_path)
+        # if self.loaded_cache_path == cache_path: return
         if cache_path.suffix in ['.pt', '.pth']:
             data = torch.load(cache_path)
             if type(data) == dict:
@@ -506,6 +512,9 @@ class DinoSimilarities(ivw.Processor):
         dev = torch.device("cuda" if torch.cuda.is_available and self.useCuda.value else "cpu")
         typ = torch.float16 if dev == torch.device("cuda") else torch.float32
         self.feat_vol = F.normalize(feat_vol.to(typ).to(dev), dim=1)
+        # TODO: watch out me flippy
+        # self.feat_vol = self.feat_vol.flip((-3, ))
+        self.loaded_cache_path = cache_path
         log('Loaded self.feat_vol', self.feat_vol)
 
     def computeSimilarities(self, annotations):
@@ -597,13 +606,18 @@ class DinoSimilarities(ivw.Processor):
     def updateSimilarities(self):
         print('updateSimilarities()')
         annotations, requires_update = get_annotations(self.dinoProcessorIdentifier.value, return_requpdate=True)
-        print(' -> annotations_to_compute', requires_update.keys())
-        if len(requires_update) > 0:
-            self.similarities.update(self.computeSimilarities({ k: v for k,v in annotations.items() if k in requires_update.keys()}))
+        print(' -> requires_update', requires_update.keys())
+        print(' -> annotations.keys()', annotations.keys())
+        print(' -> self.similarities.keys()', self.similarities.keys())
+        total_todo = requires_update.keys() 
+        if len(requires_update) > 0 or len(annotations.keys()) > len(self.similarities):
+            to_update = set(requires_update.keys()).union(set(k for k in annotations.keys() if k not in self.similarities.keys()))
+            print(' -> to_update: ', to_update)
+            self.similarities.update(self.computeSimilarities({ k: v for k,v in annotations.items() if k in to_update}))
             for ntf in requires_update.values():
                 ntf.requiresUpdate = False
             print(' -> self.similarities: ', { k: v.shape for k,v in self.similarities.items() })
-        return requires_update.keys()
+        return to_update
 
     def clearSimilarity(self):
         self.similarities.clear()
@@ -614,9 +628,10 @@ class DinoSimilarities(ivw.Processor):
         # Takes care of computing, caching and loading self.feat_vol
         if self.cache_path is None: return # No cache path means no feat_vol to load
         if self.cache_path.exists(): # Load feat_vol if it exists
-            self.loadCache(self.cache_path) # Loads self.feat_vol
-            self.addAndConnectOutports() # Add volume outports for similarities if necessary and connect to DINOVolumeRenderer
-            self.registerCallbacks() # Registers callbacks on DINOVolumeRenderer's NTF properties
+            if self.feat_vol is None or self.cache_path != self.loaded_cache_path:
+                self.loadCache(self.cache_path) # Loads self.feat_vol
+                self.addAndConnectOutports() # Add volume outports for similarities if necessary and connect to DINOVolumeRenderer
+                self.registerCallbacks() # Registers callbacks on DINOVolumeRenderer's NTF properties
         elif self.inport.hasData(): # Compute and cache feat_vol
             if is_path_creatable(str(self.cache_path)): # only if we can save to cache_path
                 print(f'Computing features and saving cache to {self.cache_path}')
@@ -625,7 +640,7 @@ class DinoSimilarities(ivw.Processor):
                 tmpvol_path = str(self.cache_path.parent/'tmpvol.npy')
                 np.save(tmpvol_path, np.ascontiguousarray(vol_np))
                 # Run infer.py script to produce feat_vol cache
-                args = f'--data-path "{tmpvol_path}" --cache-path "{self.cache_path}" --slice-along {self.sliceAlong.selectedValue} --feature-downsize-factor {self.similarityVolumeScalingFactor.value}'
+                args = f'--data-path "{tmpvol_path}" --cache-path "{self.cache_path}" --slice-along {self.sliceAlong.selectedValue} --feature-output-size 64'
                 if vol_np.ndim == 3:
                     cmd = f'{sys.executable} {NTF_REPO}/infer.py {args}'
                 elif vol_np.ndim == 4:
@@ -672,5 +687,6 @@ class DinoSimilarities(ivw.Processor):
                     volume.worldMatrix = in_vol.worldMatrix
                     volume.dataMap.dataRange = ivw.glm.dvec2(0.0, 255.0)
                     volume.dataMap.valueRange= ivw.glm.dvec2(0.0, 255.0)
+                    volume.interpolation = ivw.data.InterpolationType.Nearest
                     print(f'Setting data for {k} to {sim_np.shape}')
                     self.outs[k].setData(volume)
