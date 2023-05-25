@@ -139,9 +139,11 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
                 if (first) {
                     gradient = -entryNormal;
                 } else {
-                    gradient = grad[i];
+                    gradient = grad[i]; 
                 }
-                color[i].rgb =
+                //vec3 light_dir = normalize(samplePos - lighting.position);
+                //color[i].rgb = color[i].rgb * dot(light_dir, normalize(gradient));
+                color[i].rgb =  
                     APPLY_LIGHTING(lighting, color[i].rgb, color[i].rgb, vec3(1.0),
                                     worldSpacePosition, normalize(-gradient), toCameraDir);
                 result = APPLY_COMPOSITING(result, color[i], samplePos, vec4(sim[i]), gradient, camera,
