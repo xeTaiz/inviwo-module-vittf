@@ -51,14 +51,12 @@ class SegmentationVolumeSplitter(ivw.Processor):
             print('has data')
             in_vol = self.inport.getData()
             print(f'looping over {self.num_classes} classes')
+            val_range = self.inport.getData().dataMap.valueRange
+            data_range = self.inport.getData().dataMap.dataRange
+            rounded_vol = ((in_vol.data - data_range[0]) / (data_range[1] - data_range[0]))
+            rounded_vol = np.round(rounded_vol * (val_range[1] - val_range[0]) + val_range[0]).astype(np.uint8)
+            np.save('/run/media/dome/SSD/Data/Volumes/CT-ORG/labels-10.npy', rounded_vol)
             for i in range(self.num_classes):
-                val_range = self.inport.getData().dataMap.valueRange
-                data_range = self.inport.getData().dataMap.dataRange
-                rounded_vol = ((in_vol.data - data_range[0]) / (data_range[1] - data_range[0]))
-                rounded_vol = np.round(rounded_vol * (val_range[1] - val_range[0]) + val_range[0]).astype(np.uint8)
-                print('Setting ivw.Volume')
-                print(ivw.data.InterpolationType.Nearest)
-                print('-')
                 vol = Volume((rounded_vol == i).astype(np.uint8))
                 vol.interpolation = ivw.data.InterpolationType.Nearest
                 vol.dataMap.dataRange = dvec2(0, 1)
