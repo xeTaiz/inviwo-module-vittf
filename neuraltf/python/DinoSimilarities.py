@@ -687,6 +687,6 @@ class DinoSimilarities(ivw.Processor):
                     volume.worldMatrix = in_vol.worldMatrix
                     volume.dataMap.dataRange = ivw.glm.dvec2(0.0, 255.0)
                     volume.dataMap.valueRange= ivw.glm.dvec2(0.0, 255.0)
-                    volume.interpolation = ivw.data.InterpolationType.Nearest
+                    # volume.interpolation = ivw.data.InterpolationType.Nearest
                     print(f'Setting data for {k} to {sim_np.shape}')
                     self.outs[k].setData(volume)
