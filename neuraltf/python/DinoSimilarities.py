@@ -18,7 +18,7 @@ elif Path(NTF_REPO_UNI).exists():
     sys.path.append(NTF_REPO_UNI)
 else:
     raise Exception('No NTF repo found')
-from infer import sample_features3d, resample_topk, make_4d, make_5d, norm_minmax
+from infer import sample_features3d, resample_topk, make_3d, make_4d, make_5d, norm_minmax
 # from bilateral_solver3d import apply_bilateral_solver3d
 import os
 import subprocess
@@ -120,6 +120,8 @@ class BilateralGrid(object):
         return self.S.dot(x)
 
     def slice(self, y):
+        print('slice():   y:', y.shape, y.dtype, np.any(np.isnan(y)))
+        print('S.T', self.S.T)
         return self.S.T.dot(y)
 
     def blur(self, x):
@@ -200,6 +202,13 @@ bs_params_default = {
     'cg_maxiter': 25 # The number of PCG iterations
 }
 
+def filter_sobel_separated(input):
+    win = torch.tensor([-0.5, 0, 0.5])[None, None, None, None].to(input.dtype)
+    out = F.conv3d(input, win, groups=input.size(1), padding=(0,0,1))**2
+    out += F.conv3d(input, win.transpose(3, 4), groups=input.size(1), padding=(0,1,0))**2
+    out += F.conv3d(input, win.transpose(2, 4), groups=input.size(1), padding=(1,0,0))**2
+    return out.sqrt()
+
 def apply_bilateral_solver3d(t: torch.Tensor, r: torch.Tensor, c: torch.Tensor = None, grid_params={}, bs_params={}):
     ''' Applies bilateral solver on target `t` using confidence `c` and reference `r`.
 
@@ -213,18 +222,27 @@ def apply_bilateral_solver3d(t: torch.Tensor, r: torch.Tensor, c: torch.Tensor =
     Returns:
         torch.Tensor: Bilaterally solved target (1, W, H, D) as torch.float32
     '''
+    print('Solver Input:')
+    print('t', t.shape, t.dtype, t.min(), t.max())
+    print('r', r.shape, r.dtype, r.min(), r.max())
     tmp = t
     gp = {**grid_params_default, **grid_params}
     bs = {**bs_params_default, **bs_params}
     shap = t.shape[-3:]
     t = t.cpu().permute(1,2,3,0).numpy().squeeze(-1).reshape(-1, 1).astype(np.double)
-    r = r.cpu().permute(1,2,3,0).numpy()
     if c is None:
-        c = t
-        c = np.ones(shap).reshape(-1,1) * 0.999
+        # c = np.ones(shap).reshape(-1,1) * 0.999
+        # print('np.ones confidence', c.shape, c.dtype, c.min(), c.max())
+
+        # print('reference in', r.shape, r.min(), r.max())
+        c = filter_sobel_separated(make_5d(r[[0]]).float() / 255.0).squeeze(0)
+        # print('confidence', c.shape, c.dtype, c.min(), c.max())
+        c = (c.max() - c).numpy().astype(np.double).reshape(-1, 1)
+        # print('confidence', c.shape, c.dtype, c.min(), c.max())
     else:
         c = c.cpu().permute(1,2,3,0).numpy().astype(np.double).reshape(-1,1)
-
+    print('c', c.shape, c.dtype, c.min(), c.max())
+    r = r.cpu().permute(1,2,3,0).numpy()
     grid = BilateralGrid(r, **gp)
     solver = BilateralSolver(grid, bs)
     out = solver.solve(t, c).reshape(*shap)
@@ -232,6 +250,20 @@ def apply_bilateral_solver3d(t: torch.Tensor, r: torch.Tensor, c: torch.Tensor =
 
 def _reduce_max(acc, up, N): return torch.maximum(acc, up.max(dim=1).values)
 def _reduce_avg(acc, up, N): return (acc * N + up.sum(dim=1)) / (N + up.size(1))
+
+
+def enhance_contrast(data, value, factor=2.0):
+    ''' Enhances contrast of `data` for values close to `value`
+
+    Args:
+        data (Tensor): Image/Volume to be contrast enhanced with value range [0,1]
+        value (float): Value for which contrast shall be enhanced
+        factor (float, optional): Strength of contrast enhancement. Defaults to 6.0.
+
+    Returns:
+        Tensor: Contrast enhanced image/volume with `value` shifted to 0.5, scaled back to [0,1]
+    '''
+    return torch.clamp((data - value) * factor + value, 0.0, 1.0)
 
 reduce_fns = {
     'max': _reduce_max,
@@ -294,8 +326,6 @@ def get_similarity_params(proc_name, return_empty=False):
     dino_proc = get_processor(proc_name)
     ret = {
         ntf.identifier: {
-            'exponent': ntf.similarityExponent,
-            'threshold': ntf.similarityThreshold,
             'reduction': reduce_fns[ntf.similarityReduction],
             'modality': ntf.modality,
             'modalityWeight': torch.from_numpy(ntf.modalityWeight.array)
@@ -431,21 +461,6 @@ class DinoSimilarities(ivw.Processor):
                 self.addAndConnectOutports()
             cb = proc.annotationButtons.onChange(temp)
             self.registeredCallbacks[proc.annotationButtons.path] = cb
-        # Remove Callbacks from old "Add to Class" buttons
-        # existing_buttons = list(map(lambda btn: btn.path, proc.annotationButtons.properties))
-        # for oldBtn in set(existing_buttons - self.registeredCallbacks.keys())
-        # Register Callbacks for "Add to Class" buttons
-        # for btnProp in proc.annotationButtons.properties:
-        #     if btnProp.path not in self.registeredCallbacks.keys():
-        #         cb = btnProp.onChange(self.invalidateOutput)
-        #         self.registeredCallbacks[btnProp.path] = cb
-        # # Register Callbacks for transfer functions
-        # for ntfProp in proc.tfs.properties:
-        #     for tfProp in ntfProp.properties:
-        #         if tfProp.identifier in ['simexponent', 'simthresh', 'normBeforeBilat'] \
-        #         and tfProp.path not in self.registeredCallbacks.keys():
-        #             cb = tfProp.onChange(self.invalidateOutput)
-        #             self.registeredCallbacks[tfProp.path] = cb
 
     def invalidateOutput(self, force=False):
         if force or self.updateOnAnnotation.value:
@@ -551,27 +566,36 @@ class DinoSimilarities(ivw.Processor):
 
             sims = torch.einsum('mfwhd,mcaf->mcawhd', (self.feat_vol, qf)).squeeze(1)
             # sims = resample_topk(self.feat_vol, sims, K=8, feature_sampling_mode='bilinear').squeeze(1)
-
-            bls_scale = self.similarityVolumeScalingFactor.value / 4.0
+            
+            # bls_scale = self.similarityVolumeScalingFactor.value / 4.0
             bls_params = { # Values for scaling factor //4.0
-                'sigma_spatial': int(self.sigmaSpatial.value // bls_scale),
-                'sigma_chroma': int(self.sigmaChroma.value // bls_scale),
-                'sigma_luma': int(self.sigmaLuma.value // bls_scale)
+                'sigma_spatial': int(self.sigmaSpatial.value),
+                'sigma_chroma': int(self.sigmaChroma.value),
+                'sigma_luma': int(self.sigmaLuma.value)
             }
+            print('Actual BLS Params\n', bls_params)
             lr_abs_coords = torch.round((rel_coords * 0.5 + 0.5) * (torch.tensor([*sims.shape[-3:]]).to(dev).to(typ) - 1.0)).long() # (A, 3)
-            lr_abs_coords = split_into_classes(lr_abs_coords[None]) # (1, A, 3) -> {NTF_ID: (1, a, 3)}
+            lr_abs_coords = split_into_classes(make_3d(lr_abs_coords)) # (1, A, 3) -> {NTF_ID: (1, a, 3)}
             sim_split = {}
+            rel_coords_dict = split_into_classes(make_3d(rel_coords))
             for k,sim in split_into_classes(sims).items():
                 print('Reducing & Solving ', k, sim.shape)
-                sim = torch.where(sim >= simparams[k]['threshold'], sim, torch.zeros(1, dtype=typ, device=dev)) ** simparams[k]['exponent'] # Throw away low similarities & exponentiate
+                sim = torch.where(sim >= 0.25, sim, torch.zeros(1, dtype=typ, device=dev)) ** 2.5 # Throw away low similarities & exponentiate
                 sim = sim.mean(dim=1)
                 log(' -> reduced sim', sim)
                 if self.enableBLS.checked:
-                    in_vol = np.ascontiguousarray(inv_vol.data.astype(np.float32))
+                    in_vol = np.ascontiguousarray(inv_vol.data.astype(np.float32)) # TODO: refactor out of this loop
                     if in_vol.ndim == 4: in_vol = np.transpose(in_vol, (3,0,1,2))
                     vol = F.interpolate(make_5d(torch.from_numpy(in_vol.copy())), sim_shape, mode='nearest').squeeze(0)
                     m = vol.size(0)
-                    vol = (255.0 * norm_minmax(vol)).to(torch.uint8)
+                    vol = norm_minmax(vol)
+                    median_int = sample_features3d(vol, rel_coords_dict[k], mode='nearest').median()
+                    print(f'median of {k} annotations:', median_int)
+                    print('annotations:', rel_coords_dict[k].shape)
+                    print(vol.histc(bins=21))
+                    # vol = enhance_contrast(vol, value=median_int, factor=2.0)
+                    print(vol.histc(bins=21))   
+                    vol = (255.0 * vol).to(torch.uint8)
                     if   vol.size(0) == 1: vol = vol[None].expand(1,3,-1,-1,-1)
                     elif vol.size(0) == 2: vol = vol[:,None].expand(-1,3,-1,-1,-1)
                     elif vol.size(0) == 3: vol = vol[None]
@@ -582,8 +606,11 @@ class DinoSimilarities(ivw.Processor):
                     # Apply Bilateral Solver
                     blsim = 0.0
                     for i, ssim, svol in zip(count(), sim, vol):
-                        blsim += apply_bilateral_solver3d(make_4d(ssim), svol, grid_params=bls_params) * simparams[k]['modalityWeight'][i]
+                        print('APPLYING Bilateral Solver')
+                        if simparams[k]['modalityWeight'][i] > 0:
+                            blsim += apply_bilateral_solver3d(make_4d(ssim), svol, grid_params=bls_params) * simparams[k]['modalityWeight'][i]
                     sim_split[k] = (255.0 / blsim.quantile(q=0.9999) * blsim).clamp(0, 254.0).cpu().to(torch.uint8).squeeze()
+                    # print(f'sim_split[{k}]', sim_split[k].shape, sim_split[k].min(), sim_split[k].max())
                 else:
                     msim = 0.0
                     # Merge similarities of different modalities
@@ -591,7 +618,7 @@ class DinoSimilarities(ivw.Processor):
                         if simparams[k]['modalityWeight'][i] > 0:
                             msim += ssim * simparams[k]['modalityWeight'][i]
                     sim_split[k] = (255.0 / msim.quantile(q=0.9999) * msim).clamp(0, 254.0).cpu().to(torch.uint8).squeeze()
-                
+
                 # log(k, sim_split[k])
                 # Set similarity to 1 where the volume is annotated
                 print('Setting similarity to 1 where the volume is annotated')
@@ -599,7 +626,7 @@ class DinoSimilarities(ivw.Processor):
                 an_indices = tuple(a.squeeze(-1) for a in lr_abs_coords[k].squeeze().split(1, dim=-1))
                 print(an_indices)
                 print(k, sim_split[k].shape)
-                sim_split[k][an_indices] = 255
+                # sim_split[k][an_indices] = 255
                 print('Returning shit')
             return sim_split
 
@@ -609,7 +636,7 @@ class DinoSimilarities(ivw.Processor):
         print(' -> requires_update', requires_update.keys())
         print(' -> annotations.keys()', annotations.keys())
         print(' -> self.similarities.keys()', self.similarities.keys())
-        total_todo = requires_update.keys() 
+        total_todo = requires_update.keys()
         if len(requires_update) > 0 or len(annotations.keys()) > len(self.similarities):
             to_update = set(requires_update.keys()).union(set(k for k in annotations.keys() if k not in self.similarities.keys()))
             print(' -> to_update: ', to_update)
