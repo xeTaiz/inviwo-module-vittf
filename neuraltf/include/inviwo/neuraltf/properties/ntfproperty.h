@@ -37,6 +37,7 @@
 #include <inviwo/core/properties/ordinalproperty.h>
 #include <inviwo/core/properties/minmaxproperty.h>
 #include <inviwo/core/properties/boolproperty.h>
+#include <inviwo/core/properties/buttonproperty.h>
 #include <inviwo/core/properties/optionproperty.h>
 #include <inviwo/core/properties/transferfunctionproperty.h>  // for TransferFunctionProperty
 
@@ -106,14 +107,15 @@ public:
 
     void addAnnotation(const size3_t coord, const size3_t volDims, const float distanceThreshold = 1e-4f);
     void removeAnnotation(const size3_t coord, const float distanceThreshold = 1e-4f);
+    void clearAnnotations();
     const std::vector<size3_t> getAnnotatedVoxels() const;
     void init();
 
+    void showModalityProperties(bool show);
+
     // Getter & Setter
-    float getSimilarityExponent() const { return similarityExponent_.get(); }
-    void setSimilarityExponent(float value) { similarityExponent_.set(value); }
-    float getSimilarityThreshold() const { return similarityThreshold_.get(); }
-    void setSimilarityThreshold(float value) { similarityThreshold_.set(value); }
+    float getIsoValue() const { return isoValue_.get(); }
+    void setIsoValue(float value) { isoValue_.set(value); }
     std::string getSimilarityReduction() const { return similarityReduction_.getSelectedValue(); }
     void setSimilarityReduction(std::string value) { similarityReduction_.setSelectedValue(value); }
     int getModality() const { return modality_.getSelectedValue(); }
@@ -124,17 +126,18 @@ public:
     void setRequiresUpdate(bool value) { requiresUpdate_ = value; }
     vec2 getSimilarityRamp() const { return similarityRamp_.get(); }
     void setSimilarityRamp(vec2 value) { similarityRamp_.set(value); }
+    vec4 getColor() const { return color_.get(); }
+    void setColor(vec4 value) { color_.set(value); }
 
     TransferFunctionProperty tf_;
-    TransferFunctionProperty simTf_;
-    FloatProperty similarityExponent_;
-    FloatProperty similarityThreshold_;
+    FloatVec4Property color_;
+    FloatProperty isoValue_;
     FloatMinMaxProperty similarityRamp_;
     OptionPropertyString similarityReduction_;
     OptionPropertyInt modality_;
     FloatVec4Property modalityWeight_;
-    ListProperty annotations_;
     IntSizeTProperty annotationCount_;
+    ButtonProperty clearAnnotationButton_;
 
     VolumeInport* volumeInport_;
 

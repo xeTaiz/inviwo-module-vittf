@@ -88,6 +88,7 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
         tEnd, tEnd / (raycaster.samplingRate * length(rayDirection * volumeParameters.dimensions)));
     float samples = ceil(tEnd / tIncr);
     tIncr = tEnd / samples;
+    float raySegmentLen = tIncr;
     float t = 0.5f * tIncr;
     rayDirection = normalize(rayDirection);
     float tDepth = -1.0;
@@ -98,6 +99,10 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
     vec3 grad[NUM_CLASSES + 1];
     float sim[NUM_CLASSES + 1];
     float alpha[NUM_CLASSES + 1];
+    float isoValue[NUM_CLASSES +1]; // TODO: uniform per class??
+    isoValue[NUM_CLASSES] = 0.9;
+    bool surfaceFound[NUM_CLASSES + 1];
+    for(int i = 0; i < NUM_CLASSES+1; ++i) { surfaceFound[i] = false; }
     vec3 samplePos;
     vec3 toCameraDir =
         normalize(camera.position - (volumeParameters.textureToWorld * vec4(entryPoint, 1.0)).xyz);
@@ -116,11 +121,13 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
 #endif // BACKGROUND_AVAILABLE
     bool first = true;
     bool setFHD = true;
-    while (t < tEnd) {
+    int stop = 2000;
+    while (t < tEnd && stop-- > 0) {
         samplePos = entryPoint + t * rayDirection;
         voxel = getNormalizedVoxel(volume, volumeParameters, samplePos);
         hsv = rgb2hsv(voxel.rgb);
         float hue = hsv.x; //(1.0 - hsv.y) * hsv.z;
+        SET_ISO_VALUES
         sim[NUM_CLASSES] = voxel.x;
         color[NUM_CLASSES] = applyTF(rawTransferFunction, voxel.x);
         grad[NUM_CLASSES] = gradientCentralDiff(voxel, volume, volumeParameters, samplePos, 0);
@@ -130,26 +137,38 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
         result = DRAW_BACKGROUND(result, t, tIncr, backgroundColor, bgTDepth, tDepth);
         result = DRAW_PLANES(result, samplePos, rayDirection, tIncr, positionindicator, t, tDepth);
 
-        alpha[NUM_CLASSES] = 1.0f;//alpha[0];
         // World space position
         vec3 worldSpacePosition = (volumeParameters.textureToWorld * vec4(samplePos, 1.0)).xyz;
-        for (int i = 0; i < NUM_CLASSES + 1; ++i) {
-            if(alpha[i] > 0.0 && color[i].a > 0.0){
-                if (setFHD) { tDepth = t; setFHD = false; }
-                if (first) {
-                    gradient = -entryNormal;
-                } else {
-                    gradient = grad[i]; 
-                }
-                //vec3 light_dir = normalize(samplePos - lighting.position);
-                //color[i].rgb = color[i].rgb * dot(light_dir, normalize(gradient));
-                color[i].rgb =  
-                    APPLY_LIGHTING(lighting, color[i].rgb, color[i].rgb, vec3(1.0),
-                                    worldSpacePosition, normalize(-gradient), toCameraDir);
-                result = APPLY_COMPOSITING(result, color[i], samplePos, vec4(sim[i]), gradient, camera,
+        // DVR standard 1d TF
+        if(color[NUM_CLASSES].a > 0.01) {
+            color[NUM_CLASSES].rgb = APPLY_LIGHTING(lighting, color[NUM_CLASSES].rgb, color[NUM_CLASSES].rgb, vec3(1.0),
+                worldSpacePosition, normalize(-grad[NUM_CLASSES]), toCameraDir);
+            result = APPLY_COMPOSITING(result, color[NUM_CLASSES], samplePos, vec4(sim[NUM_CLASSES]), gradient, camera,
                                             raycaster.isoValue, t, tDepth, tIncr);
-                //result.rgb = 0.5*(gradient) + 0.5;
-                // result.rgb = voxel.rgb;
+            //result.rgb = result.rgb + (1.0 - result.a) * color[NUM_CLASSES].a * color[NUM_CLASSES].rgb;
+            //result.a   = result.a   + (1.0 - result.a) * color[NUM_CLASSES].a;
+        }
+        // Render NTF Iso Surfaces
+        for (int i = 0; i < NUM_CLASSES; ++i) {
+            if (alpha[i] < 0.01 || surfaceFound[i]) {continue;}
+            if (first) {grad[i] = -entryNormal; }
+            float diff = alpha[i] - isoValue[i];
+            bool sampInside = alpha[i] > isoValue[i];
+            if (abs(diff) < 0.01 || (sampInside && first)) {
+                color[i].rgb = APPLY_LIGHTING(lighting, color[i].rgb, color[i].rgb, vec3(1.0),
+                    worldSpacePosition, normalize(-grad[i]), toCameraDir);
+                result.rgb = result.rgb + (1.0 - result.a) * color[i].a * color[i].rgb;
+                result.a   = result.a   + (1.0 - result.a) * color[i].a;
+                // result.rgb = 0.5*normalize(grad[i]) + 0.5;
+                tDepth = t;
+                surfaceFound[i] = true;
+                tIncr = tEnd / samples;
+                break;
+            } else if (sampInside) {
+                // result = vec4(1.0f, 0.0f ,0.0f, 0.5f);
+                t -= tIncr;
+                tIncr /= 2.0;
+                break;
             }
         }
         first = false;
@@ -166,12 +185,10 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
             DRAW_BACKGROUND(result, bgTDepth, tIncr, backgroundColor, bgTDepth, tDepth);
     }
 
-    // if (tDepth != -1.0) {
-    //     tDepth = calculateDepthValue(camera, tDepth / tEnd, texture(entryDepth, texCoords).x,
-    //                                  texture(exitDepth, texCoords).x);
-    // } else {
-    //     tDepth = 1.0;
-    // }
+
+    if (tDepth == -1.0) {
+        tDepth = 1.0;
+    }
 
     gl_FragDepth = min(backgroundDepth, tDepth);
     return result;

@@ -29,6 +29,7 @@
 
 #include <inviwo/neuraltf/properties/ntfproperty.h>
 #include <inviwo/core/properties/valuewrapper.h>              // for PropertySerializa...
+#include <inviwo/core/properties/propertysemantics.h>         // for PropertySemantics
 #include <unordered_set>
 
 
@@ -55,15 +56,10 @@ void NTFProperty::init() {
         modalityWeight_.set(modalityWeight);
     });
     tf_.setSerializationMode(PropertySerializationMode::All);
-    simTf_.setSerializationMode(PropertySerializationMode::All);
-    addProperties(tf_, simTf_, similarityRamp_, similarityExponent_, similarityThreshold_, similarityReduction_, modality_, modalityWeight_, annotationCount_, annotations_);
-    annotations_.setCollapsed(true);
+    color_.setSemantics(PropertySemantics::Color);
+    addProperties(tf_, color_, similarityRamp_, similarityReduction_, modality_, modalityWeight_, isoValue_, annotationCount_, clearAnnotationButton_);
 
     // Hide currently deprecated properties TODO: remove or use
-    simTf_.setVisible(false);
-    similarityExponent_.setVisible(false);
-    similarityThreshold_.setVisible(false);
-    annotations_.setVisible(false);
     annotationCount_.setReadOnly(true);
 }
 
@@ -76,20 +72,16 @@ NTFProperty::NTFProperty(std::string_view identifier,
     , tf_("transferFunction0", "Transfer Function", TransferFunction(
         {{0.01, vec4(1.0f, 1.0f, 1.0f, 0.0f)}, {0.02, vec4(1.0f, 1.0f, 1.0f, 1.0f)},
          {0.99, vec4(1.0f, 1.0f, 1.0f, 1.0f)}, {1.0, vec4(1.0f, 1.0f, 1.0f, 0.0f)}}), inport)
-    , simTf_("similarityFunction0", "Similarity Function", TransferFunction(
-        {{0.6, vec4(0.0f, 1.0f, 0.0f, 0.0f)}, {0.7, vec4(0.0f, 1.0f, 0.0f, 1.0f)}}))
-    , similarityExponent_("simexponent", "Exponent", 2.5, 1.0, 10.0)
-    , similarityThreshold_("simthresh", "Threshold", 0.25, 0.0, 1.0)
+    , color_("color", "Color", vec4(1.0f), vec4(0.0f), vec4(1.0f))
+    , isoValue_("isoValue", "Iso Value", 0.8, 0.0, 1.0)
     , similarityRamp_("simramp", "Ramp", 0.6, 0.7, 0.0, 1.0, 0.05, 1e-5f)
     , similarityReduction_("simreduction", "Reduction", { {"mean", "Mean", "mean"}, {"max", "Max", "max"} })
     , modality_("modality", "Modality", {
         {"channel0", "Channel 1", 0}, {"channel1", "Channel 2", 1},
         {"channel2", "Channel 3", 2}, {"channel3", "Channel 4", 3} }, 0, InvalidationLevel::InvalidResources)
     , modalityWeight_("modalityWeight", "Modality Weighting", vec4(1.0, 0,0,0), vec4(0), vec4(1))
-    , annotations_("annotations", "Annotations",
-        std::make_unique<IntSize3Property>("coord", "Coordinate", size3_t(0), size3_t(0), size3_t(2048)),
-        0, ListPropertyUIFlag::Remove, InvalidationLevel::Valid)
     , annotationCount_("annotationCount", "Annotation Counter", 0, 0, 10000)
+    , clearAnnotationButton_("clearAnnotations", "Clear Annotations", [&](){NTFProperty::clearAnnotations();})
     , volumeInport_(inport)
     , requiresUpdate_(false)
     { init(); }
@@ -97,23 +89,21 @@ NTFProperty::NTFProperty(std::string_view identifier,
 NTFProperty::NTFProperty(const NTFProperty& other)
     : CompositeProperty(other)
     , tf_(other.tf_)
-    , simTf_(other.simTf_)
-    , similarityExponent_(other.similarityExponent_)
-    , similarityThreshold_(other.similarityThreshold_)
-    , similarityRamp_("simramp", "Ramp", 0.6, 0.7, 0.0, 1.0, 0.05, 1e-5f)
+    , color_(other.color_)
+    , isoValue_(other.isoValue_)
+    , similarityRamp_(other.similarityRamp_)
     , similarityReduction_(other.similarityReduction_)
     , modality_(other.modality_)
     , modalityWeight_(other.modalityWeight_)
-    , annotations_(other.annotations_)
     , volumeInport_(other.volumeInport_)
     , annotationCount_("annotationCount", "Annotation Counter", 0, 0, 10000)
+    , clearAnnotationButton_(other.clearAnnotationButton_)
     , requiresUpdate_(other.requiresUpdate_)
     { init(); }
 
 Property& NTFProperty::setIdentifier(const std::string_view identifier){
     std::string num = std::string(identifier.size() > 0 ? identifier.substr(3) : "");
     tf_.setIdentifier("transferFunction" + num);
-    simTf_.setIdentifier("similarityFunction" + num);
     return Property::setIdentifier(identifier);
 }
 
@@ -121,12 +111,10 @@ void NTFProperty::deserialize(Deserializer& d) {
     Property::deserialize(d);
     std::string num = std::string(getIdentifier().size() > 0 ? getIdentifier().substr(3) : "");
     tf_.setIdentifier("transferFunction" + num);
-    simTf_.setIdentifier("similarityFunction" + num);
     PropertyOwner::deserialize(d);
 }
 
 void NTFProperty::addAnnotation(const size3_t coord, const size3_t volDims, const float distanceThreshold){
-    // static_cast<IntSize3Property*>(annotations_.constructProperty(0))->set(coord);
     size_t oldSz = annotatedVoxels_.size();
     if (distanceThreshold > 1.0f) {
         size_t distFloor = std::floor(distanceThreshold);
@@ -166,9 +154,20 @@ void NTFProperty::removeAnnotation(const size3_t coord, const float distanceThre
     }
 }
 
+void NTFProperty::clearAnnotations(){
+    annotatedVoxels_.clear();
+    annotationCount_.set(size_t(0));
+}
+
 const std::vector<size3_t> NTFProperty::getAnnotatedVoxels() const {
     return std::vector<size3_t>(annotatedVoxels_.begin(), annotatedVoxels_.end());
 }
+
+void NTFProperty::showModalityProperties(bool show) {
+    modality_.setVisible(show);
+    modalityWeight_.setVisible(show);
+}
+
 
 const std::string NTFProperty::classIdentifier = "org.inviwo.NTFProperty";
 std::string NTFProperty::getClassIdentifier() const { return classIdentifier; }

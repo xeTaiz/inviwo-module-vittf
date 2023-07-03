@@ -142,7 +142,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     currentVoxelSelectionY_.setVisible(false).setReadOnly(true);
     currentVoxelSelectionZ_.setVisible(false).setReadOnly(true);
     currentVoxelSelection_.setVisible(false).setReadOnly(true);
-    currentSimilarityTF_.setVisible(false).setReadOnly(true);
+    currentSimilarityTF_.setVisible(true).setReadOnly(true);
     currentVoxelSelection_.onChange([this](){
         if (selectedClass_.size() > 0 && brushMode_.get()) {
             NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
@@ -160,6 +160,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
 void DINOVolumeRenderer::updateCurrentSimilarityTF() {
     if (selectedClass_.size() > 0) {
         NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
+        LogInfo("Setting current selection to " << selectedClass_.getSelectedIdentifier() << " which is " << ntfProp->getIdentifier());
         vec2 simRange = ntfProp->getSimilarityRamp();
         if (simRange.y < 0.99) {
             currentSimilarityTF_.set(TransferFunction(
@@ -186,33 +187,37 @@ void DINOVolumeRenderer::initializeResources() {
 
     auto ntfProps = ntfs_.getProperties();
     if (similarityPort_.hasData() && numClasses > 0) {
-        StrBuffer str3dsampler, str2dsampler, strApply, strTfChannel;
-        for (size_t i = 0; i < numClasses; ++i) {
+        StrBuffer str3dsampler, str2dsampler, strIsos, strApply, strTfChannel;
+        for (size_t i = 0; i < std::min(numClasses, ntfProps.size()); ++i) {
             // Define Uniforms
             auto ntfProp (static_cast<const NTFProperty*>(ntfProps[i]));
             int modalityChannel = ntfProp->modality_.getSelectedValue();
             vec2 simRange = ntfProp->getSimilarityRamp();
+            vec4 color = ntfProp->getColor();
             str3dsampler.append("uniform sampler3D ntf{0};", i);
-            str2dsampler.append("uniform sampler2D transferFunction{0};", i);
+            strIsos.append("isoValue[{0}] = {1};", i, ntfProp->getIsoValue());
             // str2dsampler.append("uniform sampler2D similarityFunction{0};", i);
             // Generate code to use the transfer functions
             strApply.append("sim[{0}] = texture(ntf{0}, samplePos).x;", i);
             // strApply.append("alpha[{0}] = applyTF(similarityFunction{0}, sim[{0}]).a;", i);
             strApply.append("alpha[{0}] = mix(0.0, 1.0, clamp((sim[{0}] - {1}) / {2}, 0.0, 1.0));", i, simRange.x, std::max(simRange.y - simRange.x, 1e-5f));
-            strApply.append("grad[{0}] = gradientCentralDiff(voxel, volume, volumeParameters, samplePos, {1});", i, modalityChannel);
+            strApply.append("grad[{0}] = gradientCentralDiff(voxel, ntf{0}, volumeParameters, samplePos, {1});", i, modalityChannel);
             if (numComponents < 4) {
-                strApply.append("color[{0}] = vec4(1,1,1,alpha[{0}]) * applyTF(transferFunction{0}, voxel, {2});", i, numClasses, modalityChannel);
+                strApply.append("color[{0}] = vec4({1},{2},{3},{4});", i, color.r, color.g, color.b, color.a);
             } else if (numComponents == 4) {
-                strApply.append("color[{0}] = vec4(voxel.rgb, alpha[{0}]);", i);
+                // strApply.append("color[{0}] = vec4(voxel.rgb, alpha[{0}]);", i);
+                strApply.append("color[{0}] = vec4(voxel.rgb, {1});", i, color.a);
             }
             // sim, alpha, color have length numClasses + 1, the numClasses (=last) value is used for TF on raw volume data
         }
         shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_NTF_SAMPLERS", str3dsampler.view());
         shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_TF_SAMPLERS", str2dsampler.view());
+        shader_.getFragmentShaderObject()->addShaderDefine("SET_ISO_VALUES", strIsos.view());
         shader_.getFragmentShaderObject()->addShaderDefine("APPLY_NTFS", strApply.view());
     } else {
         shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_NTF_SAMPLERS", "");
         shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_TF_SAMPLERS", "");
+        shader_.getFragmentShaderObject()->addShaderDefine("SET_ISO_VALUES", "");
         shader_.getFragmentShaderObject()->addShaderDefine("APPLY_NTFS", "");
     }
     if(volumePort_.hasData()) {
@@ -263,22 +268,19 @@ void DINOVolumeRenderer::process() {
     utilgl::deactivateCurrentTarget();
 
     // Pass through selected similarity Volume
-    size_t selection = selectedClass_.getSelectedValue();
-    if (similarityMap.size() > 0 && selection < similarityMap.size()) {
-        // auto ntfID = similarityMap[selection].first->getIdentifier();
-        // auto simVol = similarityMap[selection].second;
-        // NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(ntfID));
-        // Volume v = Volume(*similarityMap[selection].second);
-        // auto vram = std::shared_ptr<VolumeRAM>(simVol->getRepresentation<VolumeRAM>()->clone());
-        // double val = simVol->getDataFormat()->getMax();
-        // vec3 factor = vec3(simVol->getDimensions()) / vec3(volumePort_.getData()->getDimensions());
-        // for (const size3_t pos : ntfProp->getAnnotatedVoxels()){
-        //     size3_t lowresPos = size3_t(glm::round(factor * vec3(pos)));
-        //     vram->setFromDouble(lowresPos, val);
-        //     LogInfo("Setting output Volume's voxel at " << lowresPos << " to " << val);
-        // }
-        simOutport_.setData(similarityMap[selection].second);
-    } else {
+    // size_t selection = selectedClass_.getSelectedValue();
+
+    bool simOutSet = false;
+    if (selectedClass_.size() > 0) {
+        const std::string selection = selectedClass_.getSelectedIdentifier();
+        for (auto [p,v] : similarityMap) {
+            if (p->getIdentifier() == selection) {
+                simOutport_.setData(v);
+                simOutSet = true;
+            }
+        }
+    }
+    if (!simOutSet) {
         simOutport_.setData(Volume(size3_t(8,8,8)));
     }
 }
