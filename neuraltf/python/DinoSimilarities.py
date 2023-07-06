@@ -120,8 +120,7 @@ class BilateralGrid(object):
         return self.S.dot(x)
 
     def slice(self, y):
-        print('slice():   y:', y.shape, y.dtype, np.any(np.isnan(y)))
-        print('S.T', self.S.T)
+        print('BLS slice():   y:', y.shape, y.dtype, 'CONTAINS NaNs' if np.any(np.isnan(y)) else 'is fine.')
         return self.S.T.dot(y)
 
     def blur(self, x):
@@ -209,6 +208,34 @@ def filter_sobel_separated(input):
     out += F.conv3d(input, win.transpose(2, 4), groups=input.size(1), padding=(1,0,0))**2
     return out.sqrt()
 
+def crop_pad(sim, thresh=0.1, pad=0):
+    ''' Crop `sim` to the region where `sim > thresh` and pad by `pad` pixels on each side. If `sim` is a list the first element is used to determine the crop region.
+        Args:
+            sim(list or torch.Tensor): similarity map (W, H, D) or List of such tensors
+            thresh(float): threshold for cropping
+            pad(int): padding size (Can be tuple like for `torch.nn.functional.pad`)
+
+        Returns:
+            torch.Tensor: cropped and padded similarity map
+    '''
+    if isinstance(sim, list):
+        others = sim
+        sim = others[0]
+    else:
+        others = [sim]
+    nz = torch.nonzero(sim > thresh)
+    mi = torch.clamp(nz.min(dim=0).values - pad,     0, None)
+    ma = torch.clamp(nz.max(dim=0).values + pad + 1, None, torch.tensor(sim.shape[-3:]))
+    if len(others) > 1:
+        return [s[...,mi[0]:ma[0], mi[1]:ma[1], mi[2]:ma[2]] for s in others], (mi, ma)
+    else:
+        return sim[mi[0]:ma[0], mi[1]:ma[1], mi[2]:ma[2]], (mi, ma)
+
+def write_crop_into(uncropped, crop, mima):
+    mi, ma = mima
+    uncropped[..., mi[0]:ma[0], mi[1]:ma[1], mi[2]:ma[2]] = crop
+    return uncropped
+
 def apply_bilateral_solver3d(t: torch.Tensor, r: torch.Tensor, c: torch.Tensor = None, grid_params={}, bs_params={}):
     ''' Applies bilateral solver on target `t` using confidence `c` and reference `r`.
 
@@ -246,7 +273,7 @@ def apply_bilateral_solver3d(t: torch.Tensor, r: torch.Tensor, c: torch.Tensor =
     grid = BilateralGrid(r, **gp)
     solver = BilateralSolver(grid, bs)
     out = solver.solve(t, c).reshape(*shap)
-    return torch.from_numpy(out).to(torch.float32).squeeze()
+    return torch.nan_to_num(torch.from_numpy(out).to(torch.float32).squeeze())
 
 def _reduce_max(acc, up, N): return torch.maximum(acc, up.max(dim=1).values)
 def _reduce_avg(acc, up, N): return (acc * N + up.sum(dim=1)) / (N + up.size(1))
@@ -566,7 +593,7 @@ class DinoSimilarities(ivw.Processor):
 
             sims = torch.einsum('mfwhd,mcaf->mcawhd', (self.feat_vol, qf)).squeeze(1)
             # sims = resample_topk(self.feat_vol, sims, K=8, feature_sampling_mode='bilinear').squeeze(1)
-            
+
             # bls_scale = self.similarityVolumeScalingFactor.value / 4.0
             bls_params = { # Values for scaling factor //4.0
                 'sigma_spatial': int(self.sigmaSpatial.value),
@@ -594,7 +621,7 @@ class DinoSimilarities(ivw.Processor):
                     print('annotations:', rel_coords_dict[k].shape)
                     print(vol.histc(bins=21))
                     # vol = enhance_contrast(vol, value=median_int, factor=2.0)
-                    print(vol.histc(bins=21))   
+                    print(vol.histc(bins=21))
                     vol = (255.0 * vol).to(torch.uint8)
                     if   vol.size(0) == 1: vol = vol[None].expand(1,3,-1,-1,-1)
                     elif vol.size(0) == 2: vol = vol[:,None].expand(-1,3,-1,-1,-1)
@@ -608,7 +635,12 @@ class DinoSimilarities(ivw.Processor):
                     for i, ssim, svol in zip(count(), sim, vol):
                         print('APPLYING Bilateral Solver')
                         if simparams[k]['modalityWeight'][i] > 0:
-                            blsim += apply_bilateral_solver3d(make_4d(ssim), svol, grid_params=bls_params) * simparams[k]['modalityWeight'][i]
+                            crops, mima = crop_pad([ssim, svol], thresh=0.1, pad=2)
+                            csim, cvol = crops
+                            csim = apply_bilateral_solver3d(make_4d(csim), cvol, grid_params=bls_params) * simparams[k]['modalityWeight'][i]
+                            ssim = write_crop_into(ssim, csim, mima)
+                            blsim += ssim
+
                     sim_split[k] = (255.0 / blsim.quantile(q=0.9999) * blsim).clamp(0, 254.0).cpu().to(torch.uint8).squeeze()
                     # print(f'sim_split[{k}]', sim_split[k].shape, sim_split[k].min(), sim_split[k].max())
                 else:
@@ -667,7 +699,7 @@ class DinoSimilarities(ivw.Processor):
                 tmpvol_path = str(self.cache_path.parent/'tmpvol.npy')
                 np.save(tmpvol_path, np.ascontiguousarray(vol_np))
                 # Run infer.py script to produce feat_vol cache
-                args = f'--data-path "{tmpvol_path}" --cache-path "{self.cache_path}" --slice-along {self.sliceAlong.selectedValue} --feature-output-size 64'
+                args = f'--data-path "{tmpvol_path}" --cache-path "{self.cache_path}" --slice-along {self.sliceAlong.selectedValue} --feature-output-size 96'
                 if vol_np.ndim == 3:
                     cmd = f'{sys.executable} {NTF_REPO}/infer.py {args}'
                 elif vol_np.ndim == 4:
