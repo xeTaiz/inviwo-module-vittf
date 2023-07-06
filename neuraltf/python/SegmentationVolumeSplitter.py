@@ -26,7 +26,7 @@ class SegmentationVolumeSplitter(ivw.Processor):
                     self.removeOutport(out)
                 self.outs.clear()
                 self.outs = { f'ntf{i}': VolumeOutport(f'ntf{i}')
-                                 for i in range(self.num_classes) }
+                                 for i in range(self.num_classes-1) }
                 for out in self.outs.values():
                     self.addOutport(out, owner=False)
 
@@ -53,15 +53,18 @@ class SegmentationVolumeSplitter(ivw.Processor):
             print(f'looping over {self.num_classes} classes')
             val_range = self.inport.getData().dataMap.valueRange
             data_range = self.inport.getData().dataMap.dataRange
-            rounded_vol = ((in_vol.data - data_range[0]) / (data_range[1] - data_range[0]))
-            rounded_vol = np.round(rounded_vol * (val_range[1] - val_range[0]) + val_range[0]).astype(np.uint8)
-            np.save('/run/media/dome/SSD/Data/Volumes/CT-ORG/labels-10.npy', rounded_vol)
-            for i in range(self.num_classes):
-                vol = Volume((rounded_vol == i).astype(np.uint8))
-                vol.interpolation = ivw.data.InterpolationType.Nearest
+            if in_vol.data.dtype != np.uint8:
+                rounded_vol = ((in_vol.data - data_range[0]) / (data_range[1] - data_range[0]))
+                rounded_vol = np.round(rounded_vol * (val_range[1] - val_range[0]) + val_range[0]).astype(np.uint8)
+            else:
+                rounded_vol = in_vol.data
+            # np.save('/run/media/dome/SSD/Data/Volumes/CT-ORG/labels-10.npy', rounded_vol)
+            for i in range(1,self.num_classes):
+                vol = Volume(255 * (rounded_vol == i).astype(np.uint8))
+                # vol.interpolation = ivw.data.InterpolationType.Nearest
                 vol.dataMap.dataRange = dvec2(0, 1)
                 vol.dataMap.valueRange = dvec2(0, 1)
                 vol.modelMatrix = in_vol.modelMatrix
                 vol.worldMatrix = in_vol.worldMatrix
                 print('Setting Outport')
-                self.outports[f'ntf{i}'].setData(vol)
+                self.outports[f'ntf{i-1}'].setData(vol)
