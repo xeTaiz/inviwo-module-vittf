@@ -401,11 +401,7 @@ class DinoSimilarities(ivw.Processor):
             ivw.properties.StringOption("alongY", 'Slice along Y', 'y'),
             ivw.properties.StringOption("alongZ", 'Slice along Z', 'z')
         ])
-        self.enableBLS = ivw.properties.BoolCompositeProperty("enableBLS", "Bilateral Solver", False)
         self.updateSims = ivw.properties.BoolProperty("updateSims", "Update Similarities", False, ivw.properties.InvalidationLevel.Valid)
-        self.sigmaSpatial = ivw.properties.IntProperty("blSigmaSpatial", "BL: Sigma Spatial", 3, 1, 32)
-        self.sigmaChroma = ivw.properties.IntProperty("blSigmaChroma", "BL: SigmaChroma", 5, 1, 16)
-        self.sigmaLuma = ivw.properties.IntProperty("blSigmaLuma", "BL: SigmaLumal", 5, 1, 16)
         self.openCloseIterations = ivw.properties.IntProperty("openCloseIterations", "Open-Close Iterations", 0, 0, 8)
         self.addProperty(self.dinoProcessorIdentifier)
         self.addProperty(self.cachePathOverride)
@@ -417,10 +413,6 @@ class DinoSimilarities(ivw.Processor):
         self.addProperty(self.similarityVolumeScalingFactor)
         self.addProperty(self.updatePorts)
         self.addProperty(self.clearSimilarityCache)
-        self.addProperty(self.enableBLS)
-        self.enableBLS.addProperty(self.sigmaSpatial)
-        self.enableBLS.addProperty(self.sigmaChroma)
-        self.enableBLS.addProperty(self.sigmaLuma)
         self.addProperty(self.openCloseIterations)
         # Callbacks
         self.inport.onChange(self.getVolumeDataPath)
@@ -443,6 +435,7 @@ class DinoSimilarities(ivw.Processor):
         self.vol = None
         self.dims = None
         self.cache_path = None
+        self.loaded_cache_path = None
 
     @staticmethod
     def processorInfo():
@@ -461,7 +454,7 @@ class DinoSimilarities(ivw.Processor):
         if self.inport.isConnected():
             if self.cachePathOverride.value != '' and Path(self.cachePathOverride.value).exists():
                 self.cache_path = Path(self.cachePathOverride.value)
-                if self.cache_path != self.loaded_cache_path:
+                if self.cache_path != self.loaded_cache_path or self.loaded_cache_path is None:
                     self.feat_vol = None
                     self.similarities.clear()
                     self.loaded_cache_path = None
@@ -594,12 +587,6 @@ class DinoSimilarities(ivw.Processor):
             # sims = resample_topk(self.feat_vol, sims, K=8, feature_sampling_mode='bilinear').squeeze(1)
 
             # bls_scale = self.similarityVolumeScalingFactor.value / 4.0
-            bls_params = { # Values for scaling factor //4.0
-                'sigma_spatial': int(self.sigmaSpatial.value),
-                'sigma_chroma': int(self.sigmaChroma.value),
-                'sigma_luma': int(self.sigmaLuma.value)
-            }
-            print('Actual BLS Params\n', bls_params)
             lr_abs_coords = torch.round((rel_coords * 0.5 + 0.5) * (torch.tensor([*sims.shape[-3:]]).to(dev).to(typ) - 1.0)).long() # (A, 3)
             lr_abs_coords = split_into_classes(make_3d(lr_abs_coords)) # (1, A, 3) -> {NTF_ID: (1, a, 3)}
             sim_split = {}
