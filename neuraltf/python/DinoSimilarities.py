@@ -355,7 +355,11 @@ def get_similarity_params(proc_name, return_empty=False):
         ntf.identifier: {
             'reduction': reduce_fns[ntf.similarityReduction],
             'modality': ntf.modality,
-            'modalityWeight': torch.from_numpy(ntf.modalityWeight.array)
+            'modalityWeight': torch.from_numpy(ntf.modalityWeight.array),
+            'bls_sigma_spatial': ntf.blsSigmas[0],
+            'bls_sigma_chroma': ntf.blsSigmas[1],
+            'bls_sigma_luma': ntf.blsSigmas[2],
+            'bls_enabled': ntf.blsEnabled
         }
         for ntf in dino_proc.tfs.properties
         if len(ntf.getAnnotatedVoxels()) > THRESH
@@ -387,10 +391,6 @@ class DinoSimilarities(ivw.Processor):
         self.updateOnAnnotation = ivw.properties.BoolProperty("updateOnAnnotation", "Update Similarities on Annotation", True)
         self.similarityVolumeScalingFactor = ivw.properties.FloatProperty("simScaleFact", "Similarity Volume Downscale Factor", 4.0, 1.0, 8.0)
         self.similarityVolumeScalingFactor.invalidationLevel = ivw.properties.InvalidationLevel.Valid
-        self.modalityWeightingMode = ivw.properties.OptionPropertyString("modalityWeightingMode", "Modality Weighting Mode", [
-            ivw.properties.StringOption("similarities", "Similarities", "sims"),
-            ivw.properties.StringOption("concat", "Concat Features", "concat")
-        ])
         self.updatePorts = ivw.properties.ButtonProperty(
             "updateEverything", "Update Callbacks, Ports & Connections",
             self.addAndConnectOutports)
@@ -415,7 +415,6 @@ class DinoSimilarities(ivw.Processor):
         self.addProperty(self.updateSims)
         self.addProperty(self.sliceAlong)
         self.addProperty(self.similarityVolumeScalingFactor)
-        self.addProperty(self.modalityWeightingMode)
         self.addProperty(self.updatePorts)
         self.addProperty(self.clearSimilarityCache)
         self.addProperty(self.enableBLS)
@@ -609,19 +608,20 @@ class DinoSimilarities(ivw.Processor):
                 print('Reducing & Solving ', k, sim.shape)
                 sim = torch.where(sim >= 0.25, sim, torch.zeros(1, dtype=typ, device=dev)) ** 2.5 # Throw away low similarities & exponentiate
                 sim = sim.mean(dim=1)
-                log(' -> reduced sim', sim)
-                if self.enableBLS.checked:
+                if simparams[k]['bls_enabled']:
+                    bls_params = {
+                        'sigma_spatial': simparams[k]['bls_sigma_spatial'],
+                        'sigma_chroma': simparams[k]['bls_sigma_chroma'],
+                        'sigma_luma': simparams[k]['bls_sigma_luma']
+                    }
+                    print(f'{k} has BLS {simparams[k]["bls_enabled"]} with params {bls_params}')
                     in_vol = np.ascontiguousarray(inv_vol.data.astype(np.float32)) # TODO: refactor out of this loop
                     if in_vol.ndim == 4: in_vol = np.transpose(in_vol, (3,0,1,2))
                     vol = F.interpolate(make_5d(torch.from_numpy(in_vol.copy())), sim_shape, mode='nearest').squeeze(0)
                     m = vol.size(0)
                     vol = norm_minmax(vol)
-                    median_int = sample_features3d(vol, rel_coords_dict[k], mode='nearest').median()
-                    print(f'median of {k} annotations:', median_int)
-                    print('annotations:', rel_coords_dict[k].shape)
-                    print(vol.histc(bins=21))
+                    # median_int = sample_features3d(vol, rel_coords_dict[k], mode='nearest').median()
                     # vol = enhance_contrast(vol, value=median_int, factor=2.0)
-                    print(vol.histc(bins=21))
                     vol = (255.0 * vol).to(torch.uint8)
                     if   vol.size(0) == 1: vol = vol[None].expand(1,3,-1,-1,-1)
                     elif vol.size(0) == 2: vol = vol[:,None].expand(-1,3,-1,-1,-1)
@@ -639,6 +639,7 @@ class DinoSimilarities(ivw.Processor):
                             csim, cvol = crops
                             csim = apply_bilateral_solver3d(make_4d(csim), cvol, grid_params=bls_params) * simparams[k]['modalityWeight'][i]
                             ssim = write_crop_into(ssim, csim, mima)
+                            print('Wrote crop into original similarity map', csim.shape, '->', ssim.shape)
                             blsim += ssim
 
                     sim_split[k] = (255.0 / blsim.quantile(q=0.9999) * blsim).clamp(0, 254.0).cpu().to(torch.uint8).squeeze()

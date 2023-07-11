@@ -30,7 +30,9 @@ void exposeNTFBindings(py::module& m) {
         .def_property("isoValue", &NTFProperty::getIsoValue, &NTFProperty::setIsoValue)
         .def_property("color", &NTFProperty::getColor, &NTFProperty::setColor)
         .def_property("similarityReduction", &NTFProperty::getSimilarityReduction, &NTFProperty::setSimilarityReduction)
-        .def_property("requiresUpdate", &NTFProperty::getRequiresUpdate, &NTFProperty::setRequiresUpdate);
+        .def_property("requiresUpdate", &NTFProperty::getRequiresUpdate, &NTFProperty::setRequiresUpdate)
+        .def_property("blsEnabled", &NTFProperty::blsEnabled, &NTFProperty::enableBLS)
+        .def_property("blsSigmas", &NTFProperty::getBLSSigma, &NTFProperty::setBLSSigma);
 }
 
 }  // namespace inviwo

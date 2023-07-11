@@ -57,7 +57,16 @@ void NTFProperty::init() {
     });
     tf_.setSerializationMode(PropertySerializationMode::All);
     color_.setSemantics(PropertySemantics::Color);
-    addProperties(tf_, color_, similarityRamp_, similarityReduction_, modality_, modalityWeight_, isoValue_, annotationCount_, clearAnnotationButton_);
+    enableBLS_.addProperties(blsSigmaSpatial_, blsSigmaChroma_, blsSigmaLuma_);
+    enableBLS_.onChange([&](){
+        enableBLS_.setCollapsed(!enableBLS_.isChecked());
+        requiresUpdate_ = true;
+    });
+    blsSigmaSpatial_.onChange([&](){requiresUpdate_ = true;});
+    blsSigmaChroma_.onChange([&](){requiresUpdate_ = true;});
+    blsSigmaLuma_.onChange([&](){requiresUpdate_ = true;});
+    enableBLS_.setCollapsed(!enableBLS_.isChecked());
+    addProperties(tf_, color_, similarityRamp_, similarityReduction_, modality_, modalityWeight_, isoValue_, annotationCount_, clearAnnotationButton_, enableBLS_);
 
     // Hide currently deprecated properties TODO: remove or use
     annotationCount_.setReadOnly(true);
@@ -82,6 +91,10 @@ NTFProperty::NTFProperty(std::string_view identifier,
     , modalityWeight_("modalityWeight", "Modality Weighting", vec4(1.0, 0,0,0), vec4(0), vec4(1))
     , annotationCount_("annotationCount", "Annotation Counter", 0, 0, 10000)
     , clearAnnotationButton_("clearAnnotations", "Clear Annotations", [&](){NTFProperty::clearAnnotations();})
+    , enableBLS_("enableBLS", "Bilateral Smoothing", false)
+    , blsSigmaSpatial_("blsSigmaSpatial", "Sigma Spatial", 3, 1, 32)
+    , blsSigmaChroma_("blsSigmaChroma", "Sigma Chroma", 3, 1, 16)
+    , blsSigmaLuma_("blsSigmaLuma", "Sigma Luma", 3, 1, 16)
     , volumeInport_(inport)
     , requiresUpdate_(false)
     { init(); }
@@ -98,7 +111,11 @@ NTFProperty::NTFProperty(const NTFProperty& other)
     , volumeInport_(other.volumeInport_)
     , annotationCount_("annotationCount", "Annotation Counter", 0, 0, 10000)
     , clearAnnotationButton_(other.clearAnnotationButton_)
-    , requiresUpdate_(other.requiresUpdate_)
+    , enableBLS_(other.enableBLS_)
+    , blsSigmaSpatial_(other.blsSigmaSpatial_)
+    , blsSigmaChroma_(other.blsSigmaChroma_)
+    , blsSigmaLuma_(other.blsSigmaLuma_)
+   , requiresUpdate_(other.requiresUpdate_)
     { init(); }
 
 Property& NTFProperty::setIdentifier(const std::string_view identifier){

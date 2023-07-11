@@ -40,6 +40,7 @@
 #include <inviwo/core/properties/buttonproperty.h>
 #include <inviwo/core/properties/optionproperty.h>
 #include <inviwo/core/properties/transferfunctionproperty.h>  // for TransferFunctionProperty
+#include <inviwo/core/properties/boolcompositeproperty.h>
 
 #include <string>
 #include <string_view>
@@ -128,6 +129,10 @@ public:
     void setSimilarityRamp(vec2 value) { similarityRamp_.set(value); }
     vec4 getColor() const { return color_.get(); }
     void setColor(vec4 value) { color_.set(value); }
+    bool blsEnabled() const { return enableBLS_.isChecked(); }
+    void enableBLS(bool value) { enableBLS_.setChecked(value); }
+    ivec3 getBLSSigma() const { return ivec3(blsSigmaSpatial_.get(), blsSigmaChroma_.get(), blsSigmaLuma_.get()); }
+    void setBLSSigma(ivec3 value) { blsSigmaSpatial_.set(value.x); blsSigmaChroma_.set(value.y); blsSigmaLuma_.set(value.z); }
 
     TransferFunctionProperty tf_;
     FloatVec4Property color_;
@@ -138,6 +143,10 @@ public:
     FloatVec4Property modalityWeight_;
     IntSizeTProperty annotationCount_;
     ButtonProperty clearAnnotationButton_;
+    BoolCompositeProperty enableBLS_;
+    IntSizeTProperty blsSigmaSpatial_;
+    IntSizeTProperty blsSigmaChroma_;
+    IntSizeTProperty blsSigmaLuma_;
 
     VolumeInport* volumeInport_;
 
