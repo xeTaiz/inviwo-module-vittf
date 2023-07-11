@@ -136,7 +136,11 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     similarityPort_.setOptional(true);
     backgroundPort_.setOptional(true);
 
-    addProperties(rawTransferFunction_, ntfs_, annotationButtons_, selectedModality_, selectedClass_, brushSize_, brushMode_, eraseMode_, updateSims_, raycasting_, camera_, lighting_, positionIndicator_);
+    addProperties(rawTransferFunction_, ntfs_, annotationButtons_, selectedModality_, selectedClass_, brushSize_, brushMode_, eraseMode_, updateSims_);
+    brushSize_.setVisible(false);
+    brushMode_.setVisible(false);
+    eraseMode_.setVisible(false);
+    annotationButtons_.setCollapsed(true);
     addProperties(currentVoxelSelectionX_, currentVoxelSelectionY_, currentVoxelSelectionZ_, currentVoxelSelection_, currentSimilarityTF_, addAnnotation_, cycleModalitySelection_, cycleClassSelection_);
     currentVoxelSelectionX_.setVisible(false).setReadOnly(true);
     currentVoxelSelectionY_.setVisible(false).setReadOnly(true);
@@ -155,6 +159,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
         }
     });
     selectedClass_.onChange([this](){ updateCurrentSimilarityTF(); });
+    addProperties(raycasting_, camera_, lighting_, positionIndicator_);
 }
 
 void DINOVolumeRenderer::updateCurrentSimilarityTF() {
