@@ -201,6 +201,13 @@ bs_params_default = {
     'cg_maxiter': 25 # The number of PCG iterations
 }
 
+def filter_gauss_separated(input):
+    win = torch.tensor([0.25, 0.5, 0.25])[None, None, None, None].to(input.dtype)
+    out = F.conv3d(input, win, groups=input.size(1), padding=(0,0,1))
+    out = F.conv3d(out, win.transpose(3, 4), groups=input.size(1), padding=(0,1,0))
+    out = F.conv3d(out, win.transpose(2, 4), groups=input.size(1), padding=(1,0,0))
+    return out
+
 def filter_sobel_separated(input):
     win = torch.tensor([-0.5, 0, 0.5])[None, None, None, None].to(input.dtype)
     out = F.conv3d(input, win, groups=input.size(1), padding=(0,0,1))**2
@@ -262,7 +269,9 @@ def apply_bilateral_solver3d(t: torch.Tensor, r: torch.Tensor, c: torch.Tensor =
         # print('np.ones confidence', c.shape, c.dtype, c.min(), c.max())
 
         # print('reference in', r.shape, r.min(), r.max())
-        c = filter_sobel_separated(make_5d(r[[0]]).float() / 255.0).squeeze(0)
+        c = filter_sobel_separated(make_5d(r[[0]]).float() / 255.0)
+        c = c.squeeze(0) # switch with below line to enable blurring
+        # c = filter_gauss_separated(c).squeeze(0)
         # print('confidence', c.shape, c.dtype, c.min(), c.max())
         c = (c.max() - c).numpy().astype(np.double).reshape(-1, 1)
         # print('confidence', c.shape, c.dtype, c.min(), c.max())
@@ -367,6 +376,15 @@ def get_similarity_params(proc_name, return_empty=False):
     print('get_similarity_params(): ', ret)
     return ret
 
+def save_annotations(proc_name, path):
+    annotations = get_annotations(proc_name, return_empty=True)
+    np.save(path, annotations)
+    print(f'Saved annotations {annotations.keys()} to {path}')
+
+def save_similarities(similarities, path):
+    np.save(path, similarities)
+    print(f'Saved similarities {similarities.keys()} to {path}')
+
 def is_path_creatable(pathname: str) -> bool:
     '''
     `True` if the current user has sufficient permissions to create the passed
@@ -436,6 +454,30 @@ class DinoSimilarities(ivw.Processor):
         self.dims = None
         self.cache_path = None
         self.loaded_cache_path = None
+        self.save_dir = ivw.properties.DirectoryProperty("saveDir", "Save Directory", "")
+        self.save_btn = ivw.properties.ButtonProperty("saveBtn", "Save Similarities", self.save_similarities)
+        self.load_btn = ivw.properties.ButtonProperty("loadBtn", "Load Similarities", self.load_similarities)
+        self.addProperty(self.save_dir)
+        self.addProperty(self.save_btn)
+        self.addProperty(self.load_btn)
+
+    def save_similarities(self):
+        if self.save_dir.value != '' and is_path_creatable(self.save_dir.value):
+            dir = Path(self.save_dir.value)
+            dir.mkdir(parents=True, exist_ok=True)
+            save_similarities(self.similarities, dir / 'similarities.npy')
+            save_annotations(self.dinoProcessorIdentifier.value, dir / 'annotations.npy')
+        else:
+            print("ERROR: Invalid save directory")
+
+    def load_similarities(self):
+        if self.save_dir.value != '' and Path(self.save_dir.value).exists():
+            self.similarities = np.load(Path(self.save_dir.value) / 'similarities.npy', allow_pickle=True)[()]
+            dino_proc = get_processor(self.dinoProcessorIdentifier.value)
+            ntfs = dino_proc.tfs.properties
+            annotations = np.load(Path(self.save_dir.value) / 'annotations.npy', allow_pickle=True)[()]
+            for k,v in annotations.items():
+                ntfs[k].setAnnotations(list(map(ivw.glm.size3_t, np.array(v).astype(np.int64).tolist())))
 
     @staticmethod
     def processorInfo():
@@ -664,7 +706,10 @@ class DinoSimilarities(ivw.Processor):
             for ntf in requires_update.values():
                 ntf.requiresUpdate = False
             print(' -> self.similarities: ', { k: v.shape for k,v in self.similarities.items() })
-        return to_update
+            return to_update
+        else:
+            print('Nothing to update')
+            return set()
 
     def clearSimilarity(self):
         self.similarities.clear()

@@ -22,6 +22,8 @@ void exposeNTFBindings(py::module& m) {
              py::arg("semantics") = PropertySemantics::Default)
         .def("addAnnotation", &NTFProperty::addAnnotation)
         .def("removeAnnotation", &NTFProperty::removeAnnotation)
+        .def("clearAnnotations", &NTFProperty::clearAnnotations)
+        .def("setAnnotations", &NTFProperty::setAnnotations)
         .def("getAnnotatedVoxels", &NTFProperty::getAnnotatedVoxels)
         .def_property_readonly("tf", py::cpp_function([](NTFProperty& p) -> TransferFunctionProperty& { return p.tf_; },
                              py::return_value_policy::reference_internal))

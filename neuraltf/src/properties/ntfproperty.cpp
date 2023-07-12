@@ -110,7 +110,7 @@ NTFProperty::NTFProperty(const NTFProperty& other)
     , modalityWeight_(other.modalityWeight_)
     , volumeInport_(other.volumeInport_)
     , annotationCount_("annotationCount", "Annotation Counter", 0, 0, 10000)
-    , clearAnnotationButton_(other.clearAnnotationButton_)
+    , clearAnnotationButton_("clearAnnotations", "Clear Annotations", [&](){NTFProperty::clearAnnotations();})
     , enableBLS_(other.enableBLS_)
     , blsSigmaSpatial_(other.blsSigmaSpatial_)
     , blsSigmaChroma_(other.blsSigmaChroma_)
@@ -174,6 +174,12 @@ void NTFProperty::removeAnnotation(const size3_t coord, const float distanceThre
 void NTFProperty::clearAnnotations(){
     annotatedVoxels_.clear();
     annotationCount_.set(size_t(0));
+}
+
+void NTFProperty::setAnnotations(const std::vector<size3_t>& annotations){
+    annotatedVoxels_.clear();
+    annotatedVoxels_.insert(annotations.begin(), annotations.end());
+    annotationCount_.set(annotatedVoxels_.size());
 }
 
 const std::vector<size3_t> NTFProperty::getAnnotatedVoxels() const {
