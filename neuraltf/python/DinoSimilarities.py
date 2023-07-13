@@ -381,9 +381,12 @@ def save_annotations(proc_name, path):
     np.save(path, annotations)
     print(f'Saved annotations {annotations.keys()} to {path}')
 
-def save_similarities(similarities, path):
-    np.save(path, similarities)
-    print(f'Saved similarities {similarities.keys()} to {path}')
+def save_nparray(array, path):
+    np.save(path, array)
+    if isinstance(array, dict):
+        print(f'Saved array {array.keys()} to {path}')
+    else:
+        print(f'Saved array {array.shape} to {path}')
 
 def is_path_creatable(pathname: str) -> bool:
     '''
@@ -465,8 +468,12 @@ class DinoSimilarities(ivw.Processor):
         if self.save_dir.value != '' and is_path_creatable(self.save_dir.value):
             dir = Path(self.save_dir.value)
             dir.mkdir(parents=True, exist_ok=True)
-            save_similarities(self.similarities, dir / 'similarities.npy')
+            save_nparray(self.similarities, dir / 'similarities.npy')
             save_annotations(self.dinoProcessorIdentifier.value, dir / 'annotations.npy')
+            if self.inport.hasData():
+                save_nparray(self.inport.getData().data, dir / 'volume.npy')
+            if self.feat_vol is not None:
+                save_nparray(self.feat_vol, dir / 'dino_features.npy')
         else:
             print("ERROR: Invalid save directory")
 
@@ -646,7 +653,7 @@ class DinoSimilarities(ivw.Processor):
                     print(f'{k} has BLS {simparams[k]["bls_enabled"]} with params {bls_params}')
                     in_vol = np.ascontiguousarray(inv_vol.data.astype(np.float32)) # TODO: refactor out of this loop
                     if in_vol.ndim == 4: in_vol = np.transpose(in_vol, (3,0,1,2))
-                    vol = F.interpolate(make_5d(torch.from_numpy(in_vol.copy())), sim_shape, mode='nearest').squeeze(0)
+                    vol = F.interpolate(make_5d(torch.from_numpy(in_vol.copy())), sim_shape, mode='trilinear').squeeze(0)
                     m = vol.size(0)
                     vol = norm_minmax(vol)
                     # median_int = sample_features3d(vol, rel_coords_dict[k], mode='nearest').median()
@@ -658,7 +665,7 @@ class DinoSimilarities(ivw.Processor):
                     elif vol.size(0)  > 3: vol = vol[None, :3]
                     if tuple(sim.shape[-3:]) != sim_shape:
                         print(f'Resizing {k} similarity to', sim_shape)
-                        sim = F.interpolate(make_5d(sim), sim_shape, mode='nearest').squeeze(0)
+                        sim = F.interpolate(make_5d(sim), sim_shape, mode='trilinear').squeeze(0)
                     # Apply Bilateral Solver
                     blsim = 0.0
                     for i, ssim, svol in zip(count(), sim, vol):
