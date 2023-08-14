@@ -87,6 +87,8 @@ private:
     BoolProperty updateSims_;
 
     TransferFunctionProperty rawTransferFunction_;
+    BoolProperty useShadowRays_;
+    BoolProperty useAmbientOcclusion_;
     SimpleRaycastingProperty raycasting_;
     CameraProperty camera_;
     SimpleLightingProperty lighting_;
