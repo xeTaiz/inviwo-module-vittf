@@ -28,6 +28,8 @@ from scipy.sparse import csr_matrix, diags
 from scipy.sparse.linalg import cg
 from scipy.ndimage import grey_closing, grey_opening
 
+from cc_torch import connected_components_labeling
+
 ######### Bilateral Solver
 
 RGB_TO_YUV = np.array([[0.299, 0.587, 0.114],
@@ -202,14 +204,14 @@ bs_params_default = {
 }
 
 def filter_gauss_separated(input):
-    win = torch.tensor([0.25, 0.5, 0.25])[None, None, None, None].to(input.dtype)
+    win = torch.tensor([0.25, 0.5, 0.25])[None, None, None, None].to(input.dtype).to(input.device)
     out = F.conv3d(input, win, groups=input.size(1), padding=(0,0,1))
     out = F.conv3d(out, win.transpose(3, 4), groups=input.size(1), padding=(0,1,0))
     out = F.conv3d(out, win.transpose(2, 4), groups=input.size(1), padding=(1,0,0))
     return out
 
 def filter_sobel_separated(input):
-    win = torch.tensor([-0.5, 0, 0.5])[None, None, None, None].to(input.dtype)
+    win = torch.tensor([-0.5, 0, 0.5])[None, None, None, None].to(input.dtype).to(input.device)
     out = F.conv3d(input, win, groups=input.size(1), padding=(0,0,1))**2
     out += F.conv3d(input, win.transpose(3, 4), groups=input.size(1), padding=(0,1,0))**2
     out += F.conv3d(input, win.transpose(2, 4), groups=input.size(1), padding=(1,0,0))**2
@@ -232,7 +234,7 @@ def crop_pad(sim, thresh=0.1, pad=0):
         others = [sim]
     nz = torch.nonzero(sim > thresh)
     mi = torch.clamp(nz.min(dim=0).values - pad,     0, None)
-    ma = torch.clamp(nz.max(dim=0).values + pad + 1, None, torch.tensor(sim.shape[-3:]))
+    ma = torch.clamp(nz.max(dim=0).values + pad + 1, None, torch.tensor(sim.shape[-3:]).to(sim.device))
     if len(others) > 1:
         return [s[...,mi[0]:ma[0], mi[1]:ma[1], mi[2]:ma[2]] for s in others], (mi, ma)
     else:
@@ -301,6 +303,27 @@ def enhance_contrast(data, value, factor=2.0):
     '''
     return torch.clamp((data - value) * factor + value, 0.0, 1.0)
 
+def largest_connected_component(mask):
+    ''' Returns largest connected component of `mask`
+        Args:
+            mask (Tensor): Binary mask
+
+        Returns:
+            Tensor: Largest connected component of `mask` as binary mask
+    '''
+    dims_even = (torch.Tensor([*mask.shape[-3:]]) % 2 == 0).all()
+    if dims_even:
+        em = slice(None)
+    else:
+        em = [slice(mask.size(d) - mask.size(d) % 2) for d in range(-3,0)]
+    largest_island = torch.zeros_like(mask)
+    labels = connected_components_labeling(mask[em].to(torch.uint8).cuda())
+    uniq, sizes = labels.unique(sorted=True, return_counts=True)
+    if len(uniq) == 1: return labels == uniq[0]
+    largest_island_idx = sizes[1:].argmax() + 1
+    largest_island[em] = (labels == uniq[largest_island_idx]).to(mask.device)
+    return largest_island
+
 reduce_fns = {
     'max': _reduce_max,
     'avg': _reduce_avg,
@@ -364,6 +387,9 @@ def get_similarity_params(proc_name, return_empty=False):
         ntf.identifier: {
             'reduction': reduce_fns[ntf.similarityReduction],
             'modality': ntf.modality,
+            'ramp': (ntf.ramp.x, ntf.ramp.y),
+            'contrast': ntf.contrast,
+            'connected_component': ntf.connectedComponent,
             'modalityWeight': torch.from_numpy(ntf.modalityWeight.array),
             'bls_sigma_spatial': ntf.blsSigmas[0],
             'bls_sigma_chroma': ntf.blsSigmas[1],
@@ -380,6 +406,11 @@ def save_annotations(proc_name, path):
     annotations = get_annotations(proc_name, return_empty=True)
     np.save(path, annotations)
     print(f'Saved annotations {annotations.keys()} to {path}')
+
+def save_similarity_params(proc_name, path):
+    params = get_similarity_params(proc_name, return_empty=True)
+    np.save(path, params)
+    print(f'Saved similarity params {params.keys()} to {path}')
 
 def save_nparray(array, path):
     np.save(path, array)
@@ -470,6 +501,7 @@ class DinoSimilarities(ivw.Processor):
             dir.mkdir(parents=True, exist_ok=True)
             save_nparray(self.similarities, dir / 'similarities.npy')
             save_annotations(self.dinoProcessorIdentifier.value, dir / 'annotations.npy')
+            save_similarity_params(self.dinoProcessorIdentifier.value, dir / 'similarity_params.npy')
             if self.inport.hasData():
                 save_nparray(self.inport.getData().data, dir / 'volume.npy')
             if self.feat_vol is not None:
@@ -640,10 +672,19 @@ class DinoSimilarities(ivw.Processor):
             lr_abs_coords = split_into_classes(make_3d(lr_abs_coords)) # (1, A, 3) -> {NTF_ID: (1, a, 3)}
             sim_split = {}
             rel_coords_dict = split_into_classes(make_3d(rel_coords))
+            if any([simparams[k]['bls_enabled'] for k in simparams.keys()]):
+                in_vol = np.ascontiguousarray(inv_vol.data.astype(np.float32)) # TODO: refactor out of this loop
+                if in_vol.ndim == 4: in_vol = np.transpose(in_vol, (3,0,1,2))
+                vol = F.interpolate(make_5d(torch.from_numpy(in_vol.copy())).to(dev), sim_shape, mode='trilinear').squeeze(0)
+                m = vol.size(0)
+                vol = norm_minmax(vol)
+
             for k,sim in split_into_classes(sims).items():
                 print('Reducing & Solving ', k, sim.shape)
-                sim = torch.where(sim >= 0.25, sim, torch.zeros(1, dtype=typ, device=dev)) ** 2.5 # Throw away low similarities & exponentiate
+                ramp_min = simparams[k]['ramp'][0]
+                sim = torch.where(sim >= ramp_min, sim, torch.zeros(1, dtype=typ, device=dev)) ** 2.5 # Throw away low similarities & exponentiate
                 sim = sim.mean(dim=1)
+
                 if simparams[k]['bls_enabled']:
                     bls_params = {
                         'sigma_spatial': simparams[k]['bls_sigma_spatial'],
@@ -651,34 +692,35 @@ class DinoSimilarities(ivw.Processor):
                         'sigma_luma': simparams[k]['bls_sigma_luma']
                     }
                     print(f'{k} has BLS {simparams[k]["bls_enabled"]} with params {bls_params}')
-                    in_vol = np.ascontiguousarray(inv_vol.data.astype(np.float32)) # TODO: refactor out of this loop
-                    if in_vol.ndim == 4: in_vol = np.transpose(in_vol, (3,0,1,2))
-                    vol = F.interpolate(make_5d(torch.from_numpy(in_vol.copy())), sim_shape, mode='trilinear').squeeze(0)
-                    m = vol.size(0)
-                    vol = norm_minmax(vol)
-                    # median_int = sample_features3d(vol, rel_coords_dict[k], mode='nearest').median()
-                    # vol = enhance_contrast(vol, value=median_int, factor=2.0)
-                    vol = (255.0 * vol).to(torch.uint8)
-                    if   vol.size(0) == 1: vol = vol[None].expand(1,3,-1,-1,-1)
-                    elif vol.size(0) == 2: vol = vol[:,None].expand(-1,3,-1,-1,-1)
-                    elif vol.size(0) == 3: vol = vol[None]
-                    elif vol.size(0)  > 3: vol = vol[None, :3]
+                    median_int = sample_features3d(vol, rel_coords_dict[k], mode='nearest').median()
+                    svol = enhance_contrast(vol, value=median_int, factor=simparams[k]['contrast'])
+                    svol = (255.0 * svol).to(torch.uint8)
+                    if   svol.size(0) == 1: svol = svol[None].expand(1,3,-1,-1,-1)
+                    elif svol.size(0) == 2: svol = svol[:,None].expand(-1,3,-1,-1,-1)
+                    elif svol.size(0) == 3: svol = svol[None]
+                    elif svol.size(0)  > 3: svol = svol[None, :3]
                     if tuple(sim.shape[-3:]) != sim_shape:
                         print(f'Resizing {k} similarity to', sim_shape)
                         sim = F.interpolate(make_5d(sim), sim_shape, mode='trilinear').squeeze(0)
                     # Apply Bilateral Solver
                     blsim = 0.0
-                    for i, ssim, svol in zip(count(), sim, vol):
+                    for i, ssim, mvol in zip(count(), sim, svol):
                         print('APPLYING Bilateral Solver')
                         if simparams[k]['modalityWeight'][i] > 0:
-                            crops, mima = crop_pad([ssim, svol], thresh=0.1, pad=2)
+                            quant = 0.99 * ssim.max() # ssim.quantile(q=0.99)
+                            print('quant:', quant, 'thresh:', ramp_min * quant)
+                            crops, mima = crop_pad([ssim, mvol], thresh=0.2, pad=5)
                             csim, cvol = crops
+                            print(f'Cropped Size for {k}: {csim.shape[-3:]}')
                             csim = apply_bilateral_solver3d(make_4d(csim), cvol, grid_params=bls_params) * simparams[k]['modalityWeight'][i]
-                            ssim = write_crop_into(ssim, csim, mima)
+                            quant = 0.99 * csim.max()  # csim.quantile(q=0.9999)
+                            ssim = write_crop_into(torch.zeros_like(ssim), csim, mima)
+                            if simparams[k]['connected_component']:
+                                ssim[~largest_connected_component(ssim.squeeze() > 0.20)] = 0.0
                             print('Wrote crop into original similarity map', csim.shape, '->', ssim.shape)
                             blsim += ssim
 
-                    sim_split[k] = (255.0 / blsim.quantile(q=0.9999) * blsim).clamp(0, 254.0).cpu().to(torch.uint8).squeeze()
+                    sim_split[k] = (255.0 / quant * blsim).clamp(0, 254.0).cpu().to(torch.uint8).squeeze()
                     # print(f'sim_split[{k}]', sim_split[k].shape, sim_split[k].min(), sim_split[k].max())
                 else:
                     msim = 0.0
@@ -686,7 +728,9 @@ class DinoSimilarities(ivw.Processor):
                     for i, ssim in enumerate(sim):
                         if simparams[k]['modalityWeight'][i] > 0:
                             msim += ssim * simparams[k]['modalityWeight'][i]
-                    sim_split[k] = (255.0 / msim.quantile(q=0.9999) * msim).clamp(0, 254.0).cpu().to(torch.uint8).squeeze()
+                    if simparams[k]['connected_component']:
+                        msim[~largest_connected_component(msim.squeeze() > ramp_min)] = 0.0
+                    sim_split[k] = (255.0 / msim.float().quantile(q=0.9999) * msim).clamp(0, 254.0).cpu().to(torch.uint8).squeeze()
 
                 # log(k, sim_split[k])
                 # Set similarity to 1 where the volume is annotated
