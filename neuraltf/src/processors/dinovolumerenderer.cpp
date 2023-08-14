@@ -88,6 +88,8 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     , eraseMode_("eraseMode", "Erase Mode", false, InvalidationLevel::Valid)
     , updateSims_("updateSims", "Update Similarities", false, InvalidationLevel::Valid)
     , rawTransferFunction_{"rawTransferFunction", "Raw Data Transfer Function", &volumePort_}
+    , useShadowRays_{"useShadowRays", "Use Shadow Rays", false, InvalidationLevel::InvalidResources}
+    , useAmbientOcclusion_{"useAmbientOcclusion", "Use Ambient Occlusion", false, InvalidationLevel::InvalidResources}
     , raycasting_{"raycaster", "Raycasting"}
     , camera_{"camera", "Camera", util::boundingBox(volumePort_)}
     , lighting_{"lighting", "Lighting", &camera_}
@@ -136,7 +138,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     similarityPort_.setOptional(true);
     backgroundPort_.setOptional(true);
 
-    addProperties(rawTransferFunction_, ntfs_, annotationButtons_, selectedModality_, selectedClass_, brushSize_, brushMode_, eraseMode_, updateSims_);
+    addProperties(rawTransferFunction_, ntfs_, annotationButtons_, useAmbientOcclusion_, useShadowRays_, selectedModality_, selectedClass_, brushSize_, brushMode_, eraseMode_, updateSims_);
     brushSize_.setVisible(false);
     brushMode_.setVisible(false);
     eraseMode_.setVisible(false);
@@ -189,10 +191,12 @@ void DINOVolumeRenderer::initializeResources() {
     size_t numComponents = volumePort_.getData()->getDataFormat()->getComponents();
     size_t numClasses = similarityPort_.getVectorData().size();
     shader_.getFragmentShaderObject()->addShaderDefine("NUM_CLASSES", std::to_string(numClasses));
+    shader_.getFragmentShaderObject()->setShaderDefine("USE_AMBIENT_OCCLUSION", useAmbientOcclusion_.get());
+    shader_.getFragmentShaderObject()->setShaderDefine("USE_SHADOW_RAYS", useShadowRays_.get());
 
     auto ntfProps = ntfs_.getProperties();
     if (similarityPort_.hasData() && numClasses > 0) {
-        StrBuffer str3dsampler, str2dsampler, strIsos, strApply, strTfChannel;
+        StrBuffer str3dsampler, str2dsampler, strIsos, strApply, strGrads, strTfChannel;
         for (size_t i = 0; i < std::min(numClasses, ntfProps.size()); ++i) {
             // Define Uniforms
             auto ntfProp (static_cast<const NTFProperty*>(ntfProps[i]));
@@ -206,7 +210,7 @@ void DINOVolumeRenderer::initializeResources() {
             strApply.append("sim[{0}] = texture(ntf{0}, samplePos).x;", i);
             // strApply.append("alpha[{0}] = applyTF(similarityFunction{0}, sim[{0}]).a;", i);
             strApply.append("alpha[{0}] = mix(0.0, 1.0, clamp((sim[{0}] - {1}) / {2}, 0.0, 1.0));", i, simRange.x, std::max(simRange.y - simRange.x, 1e-5f));
-            strApply.append("grad[{0}] = gradientCentralDiff(voxel, ntf{0}, volumeParameters, samplePos, {1});", i, modalityChannel);
+            strGrads.append("grad[{0}] = gradientCentralDiff(voxel, ntf{0}, volumeParameters, samplePos, {1});", i, modalityChannel);
             if (numComponents < 4) {
                 strApply.append("color[{0}] = vec4({1},{2},{3},{4});", i, color.r, color.g, color.b, color.a);
             } else if (numComponents == 4) {
@@ -219,11 +223,13 @@ void DINOVolumeRenderer::initializeResources() {
         shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_TF_SAMPLERS", str2dsampler.view());
         shader_.getFragmentShaderObject()->addShaderDefine("SET_ISO_VALUES", strIsos.view());
         shader_.getFragmentShaderObject()->addShaderDefine("APPLY_NTFS", strApply.view());
+        shader_.getFragmentShaderObject()->addShaderDefine("APPLY_GRADS", strGrads.view());
     } else {
         shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_NTF_SAMPLERS", "");
         shader_.getFragmentShaderObject()->addShaderDefine("DEFINE_TF_SAMPLERS", "");
         shader_.getFragmentShaderObject()->addShaderDefine("SET_ISO_VALUES", "");
         shader_.getFragmentShaderObject()->addShaderDefine("APPLY_NTFS", "");
+        shader_.getFragmentShaderObject()->addShaderDefine("APPLY_GRADS", "");
     }
     if(volumePort_.hasData()) {
         shader_.build();

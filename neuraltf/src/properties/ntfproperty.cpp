@@ -65,9 +65,14 @@ void NTFProperty::init() {
     blsSigmaSpatial_.onChange([&](){requiresUpdate_ = true;});
     blsSigmaChroma_.onChange([&](){requiresUpdate_ = true;});
     blsSigmaLuma_.onChange([&](){requiresUpdate_ = true;});
+    isoValue_.onChange([&](){requiresUpdate_ = true;});
+    contrastFactor_.onChange([&](){requiresUpdate_ = true;});
     enableBLS_.setCollapsed(!enableBLS_.isChecked());
-    addProperties(tf_, color_, similarityRamp_, similarityReduction_, modality_, modalityWeight_, isoValue_, annotationCount_, clearAnnotationButton_, enableBLS_);
+    addProperties(color_, similarityRamp_, similarityReduction_, modality_, modalityWeight_, isoValue_, contrastFactor_, connectedComponent_, annotationCount_, clearAnnotationButton_, enableBLS_);
 
+    modality_.setVisible(false);
+    modalityWeight_.setVisible(false);
+    similarityReduction_.setVisible(false);
     // Hide currently deprecated properties TODO: remove or use
     annotationCount_.setReadOnly(true);
 }
@@ -81,9 +86,9 @@ NTFProperty::NTFProperty(std::string_view identifier,
     , tf_("transferFunction0", "Transfer Function", TransferFunction(
         {{0.01, vec4(1.0f, 1.0f, 1.0f, 0.0f)}, {0.02, vec4(1.0f, 1.0f, 1.0f, 1.0f)},
          {0.99, vec4(1.0f, 1.0f, 1.0f, 1.0f)}, {1.0, vec4(1.0f, 1.0f, 1.0f, 0.0f)}}), inport)
-    , color_("color", "Color", vec4(1.0f), vec4(0.0f), vec4(1.0f))
-    , isoValue_("isoValue", "Iso Value", 0.8, 0.0, 1.0)
-    , similarityRamp_("simramp", "Ramp", 0.6, 0.7, 0.0, 1.0, 0.05, 1e-5f)
+    , color_("color", "Color", vec4(1.0f), vec4(0.0f), vec4(1.0f), vec4(0.01f), InvalidationLevel::InvalidResources)
+    , isoValue_("isoValue", "Iso Value", 0.5, 0.0, 1.0, 0.01, InvalidationLevel::InvalidResources)
+    , similarityRamp_("simramp", "Ramp", 0.4, 0.7, 0.0, 1.0, 0.05, 1e-5f, InvalidationLevel::InvalidResources)
     , similarityReduction_("simreduction", "Reduction", { {"mean", "Mean", "mean"}, {"max", "Max", "max"} })
     , modality_("modality", "Modality", {
         {"channel0", "Channel 1", 0}, {"channel1", "Channel 2", 1},
@@ -91,10 +96,12 @@ NTFProperty::NTFProperty(std::string_view identifier,
     , modalityWeight_("modalityWeight", "Modality Weighting", vec4(1.0, 0,0,0), vec4(0), vec4(1))
     , annotationCount_("annotationCount", "Annotation Counter", 0, 0, 10000)
     , clearAnnotationButton_("clearAnnotations", "Clear Annotations", [&](){NTFProperty::clearAnnotations();})
-    , enableBLS_("enableBLS", "Bilateral Smoothing", false)
-    , blsSigmaSpatial_("blsSigmaSpatial", "Sigma Spatial", 3, 1, 32)
+    , enableBLS_("enableBLS", "Bilateral Smoothing", false, InvalidationLevel::InvalidResources)
+    , blsSigmaSpatial_("blsSigmaSpatial", "Sigma Spatial", 5, 1, 32)
     , blsSigmaChroma_("blsSigmaChroma", "Sigma Chroma", 3, 1, 16)
     , blsSigmaLuma_("blsSigmaLuma", "Sigma Luma", 3, 1, 16)
+    , contrastFactor_("contrastFactor", "Contrast Factor", 1.0f, 1.0f, 8.0f)
+    , connectedComponent_("connectedComponent", "Connected Component", false, InvalidationLevel::InvalidResources)
     , volumeInport_(inport)
     , requiresUpdate_(false)
     { init(); }
@@ -115,6 +122,8 @@ NTFProperty::NTFProperty(const NTFProperty& other)
     , blsSigmaSpatial_(other.blsSigmaSpatial_)
     , blsSigmaChroma_(other.blsSigmaChroma_)
     , blsSigmaLuma_(other.blsSigmaLuma_)
+    , contrastFactor_(other.contrastFactor_)
+    , connectedComponent_(other.connectedComponent_)
    , requiresUpdate_(other.requiresUpdate_)
     { init(); }
 
