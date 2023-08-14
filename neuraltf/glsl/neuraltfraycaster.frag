@@ -80,6 +80,103 @@ vec3 rgb2hsv(vec3 c)
     return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
 }
 
+float shadowRay(vec3 samplePos, vec3 directionIncr, int maxSteps) {
+    float result = 0.0;
+    vec4 voxel;
+    float sim[NUM_CLASSES + 1];
+    float alpha[NUM_CLASSES + 1];
+    vec4 color[NUM_CLASSES + 1];
+    float isoValue[NUM_CLASSES +1]; // TODO: uniform per class??
+    isoValue[NUM_CLASSES] = 0.9;
+    bool surfaceFound[NUM_CLASSES + 1];
+    for(int i = 0; i < NUM_CLASSES+1; ++i) { surfaceFound[i] = false; }
+    SET_ISO_VALUES
+
+    while (maxSteps-- > 0) {
+        APPLY_NTFS
+
+        // Render NTF Iso Surfaces
+        for (int i = 0; i < NUM_CLASSES; ++i) {
+            if (alpha[i] < 0.01 || surfaceFound[i]) {continue;}
+            bool sampInside = alpha[i] > isoValue[i];
+            if (sampInside) {
+                result += (1.0 - result) * color[i].a;
+                surfaceFound[i] = true;
+                break;
+            }
+        }
+        if (result > 0.95) {
+            return result;
+        } else {
+            samplePos += directionIncr;
+        }
+    }
+    return result;
+}
+
+#define FK(k) floatBitsToInt(cos(k))^floatBitsToInt(k)
+float hash(float a, float b) {
+    int x = FK(a); int y = FK(b);
+    return float((x*x+y)*(y*y-x)+x)/2.14e9;
+}
+
+vec3 randvec(float seed) {
+    float h1 = hash(seed, seed);
+    float h2 = hash(h1, seed);
+    float h3 = hash(h2, seed);
+    return normalize(tan(vec3(h1,h2,h3)));
+}
+
+vec3 randvech(float seed) {
+    vec3 r = randvec(seed);
+    r.z = abs(r.z);
+    return r;
+}
+
+float ambientOcclusion(vec3 rayStart, vec3 normal, int maxSteps, int numSamples, float stepSize) {
+    vec4 color[NUM_CLASSES + 1];
+    vec4 voxel;
+    vec3 samplePos;
+    vec3 dir;
+    float sim[NUM_CLASSES + 1];
+    float alpha[NUM_CLASSES + 1];
+    float isoValue[NUM_CLASSES +1]; // TODO: uniform per class??
+    isoValue[NUM_CLASSES] = 0.9;
+    bool surfaceFound[NUM_CLASSES + 1];
+    for(int i = 0; i < NUM_CLASSES+1; ++i) { surfaceFound[i] = false; }
+    SET_ISO_VALUES
+
+    vec3 randomVec = randvec(hash(samplePos.x+samplePos.y, normal.y+normal.z));
+    vec3 tangent   = normalize(randomVec - normal * dot(randomVec, normal));
+    vec3 bitangent = cross(normal, tangent);
+    mat3 TBN       = mat3(tangent, bitangent, normal);
+    float result = 0.0;
+    float occlusion = 0.0;
+    for(int s = 0; s < numSamples; s++){
+        samplePos = rayStart;
+        occlusion = 0.0;
+        dir = TBN * randvech(hash(samplePos.x, float(s)));
+        while(maxSteps-- > 0){
+            APPLY_NTFS
+            for (int i = 0; i < NUM_CLASSES; ++i) {
+                if (alpha[i] < 0.01 || surfaceFound[i]) {continue;}
+                bool sampInside = alpha[i] > isoValue[i];
+                if (sampInside) {
+                    occlusion += (1.0 - occlusion) * color[i].a;
+                    surfaceFound[i] = true;
+                    break;
+                } // if(sampInside)
+            } // for(NUM_CLASSES)
+            if (occlusion > 0.95) {
+                break;
+            } 
+            samplePos += stepSize * dir;
+        } // while(maxSteps--)
+        result += occlusion;
+    } // while(numSamples--)
+    return 200.0* result / float(numSamples);
+}
+
 vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgroundDepth, vec3 entryNormal) {
     vec4 result = vec4(0.0);
     vec3 rayDirection = exitPoint - entryPoint;
@@ -134,6 +231,7 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
 
         // macro defined in MultichanlnelRaycaster::initializeResources()
         APPLY_NTFS
+        APPLY_GRADS
         result = DRAW_BACKGROUND(result, t, tIncr, backgroundColor, bgTDepth, tDepth);
         result = DRAW_PLANES(result, samplePos, rayDirection, tIncr, positionindicator, t, tDepth);
 
@@ -157,12 +255,21 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
             if (abs(diff) < 0.01 || (sampInside && first)) {
                 color[i].rgb = APPLY_LIGHTING(lighting, color[i].rgb, color[i].rgb, vec3(1.0),
                     worldSpacePosition, normalize(-grad[i]), toCameraDir);
+                tIncr = tEnd / samples;
+                vec3 offset = 0.5 * tIncr * rayDirection;
+#ifdef USE_SHADOW_RAYS
+                color[i].rgb *= 1.0 - 0.4*shadowRay(samplePos - offset, normalize(lighting.position - worldSpacePosition) * 2.0*tIncr, 300);
+#endif //USE_SHADOW_RAYS
+#ifdef USE_AMBIENT_OCCLUSION
+                float ao = 1.0 - ambientOcclusion(samplePos - 1.0*tIncr*normalize(grad[i]), normalize(-grad[i]), 128, 128, 2.0*tIncr);
+                color[i].rgb *= ao;
+                result = vec4(vec3(ao), 1.0f); break;
+#endif //USE_AMBIENT_OCCLUSION
                 result.rgb = result.rgb + (1.0 - result.a) * color[i].a * color[i].rgb;
                 result.a   = result.a   + (1.0 - result.a) * color[i].a;
                 // result.rgb = 0.5*normalize(grad[i]) + 0.5;
                 tDepth = t;
                 surfaceFound[i] = true;
-                tIncr = tEnd / samples;
                 break;
             } else if (sampInside) {
                 // result = vec4(1.0f, 0.0f ,0.0f, 0.5f);
