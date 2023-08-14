@@ -134,6 +134,10 @@ public:
     void enableBLS(bool value) { enableBLS_.setChecked(value); }
     ivec3 getBLSSigma() const { return ivec3(blsSigmaSpatial_.get(), blsSigmaChroma_.get(), blsSigmaLuma_.get()); }
     void setBLSSigma(ivec3 value) { blsSigmaSpatial_.set(value.x); blsSigmaChroma_.set(value.y); blsSigmaLuma_.set(value.z); }
+    float getContrast() const { return contrastFactor_.get(); }
+    void setContrast(float value) { contrastFactor_.set(value); }
+    bool getConnectedComponent() const { return connectedComponent_.get(); }
+    void setConnectedComponent(bool value) { connectedComponent_.set(value); }
 
     TransferFunctionProperty tf_;
     FloatVec4Property color_;
@@ -148,6 +152,8 @@ public:
     IntSizeTProperty blsSigmaSpatial_;
     IntSizeTProperty blsSigmaChroma_;
     IntSizeTProperty blsSigmaLuma_;
+    FloatProperty contrastFactor_;
+    BoolProperty connectedComponent_;
 
     VolumeInport* volumeInport_;
 
