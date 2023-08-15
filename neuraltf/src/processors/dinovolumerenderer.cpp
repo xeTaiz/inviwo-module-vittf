@@ -69,6 +69,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     , shader_("neuraltfraycaster.frag", Shader::Build::No)
     , volumePort_{"volume", "Input Volume"_help}
     , similarityPort_{"similarity", "Similarity Volumes"_help}
+    , annotationPort_{"annotationPort", "Annotation List"_help}
     , entryPort_{"entry", "Entry-point image"_help}
     , exitPort_{"exit", "Exit-point image"_help}
     , backgroundPort_{"bg", "Input Image to write into"_help}
@@ -134,7 +135,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     backgroundPort_.onConnect([&]() { this->invalidate(InvalidationLevel::InvalidResources); });
     backgroundPort_.onDisconnect([&]() { this->invalidate(InvalidationLevel::InvalidResources); });
 
-    addPorts(volumePort_, entryPort_, exitPort_, similarityPort_, backgroundPort_, outport_, simOutport_);
+    addPorts(volumePort_, entryPort_, exitPort_, similarityPort_, backgroundPort_, outport_, simOutport_, annotationPort_);
     similarityPort_.setOptional(true);
     backgroundPort_.setOptional(true);
 
@@ -293,6 +294,20 @@ void DINOVolumeRenderer::process() {
     }
     if (!simOutSet) {
         simOutport_.setData(Volume(size3_t(8,8,8)));
+    }
+    if (selectedClass_.size() > 0) {
+        const std::string selection = selectedClass_.getSelectedIdentifier();
+        auto ntfProps = ntfs_.getProperties();
+        for (size_t i = 0; i < ntfProps.size(); i++) {
+            const auto p(static_cast<const NTFProperty*>(ntfProps[i]));
+            if (p->getIdentifier() == selection) {
+                std::vector<vec3> coords;
+                for (const auto& coord : p->getAnnotatedVoxels()) {
+                    coords.push_back((vec3(coord)+0.5f) / vec3(volumePort_.getData()->getDimensions()));
+                }
+                annotationPort_.setData(std::make_shared<std::vector<vec3>>(coords));
+            }
+        }
     }
 }
 

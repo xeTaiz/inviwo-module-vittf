@@ -71,6 +71,7 @@ private:
 
     VolumeInport volumePort_;
     DataInport<Volume, 0, true> similarityPort_;
+    DataOutport<std::vector<vec3>> annotationPort_;
     ImageInport entryPort_;
     ImageInport exitPort_;
     ImageInport backgroundPort_;

@@ -195,6 +195,10 @@ const std::vector<size3_t> NTFProperty::getAnnotatedVoxels() const {
     return std::vector<size3_t>(annotatedVoxels_.begin(), annotatedVoxels_.end());
 }
 
+const std::shared_ptr<std::vector<size3_t>> NTFProperty::getAnnotatedVoxelsPtr() const {
+    return std::make_shared<std::vector<size3_t>>(annotatedVoxels_.begin(), annotatedVoxels_.end());
+}
+
 void NTFProperty::showModalityProperties(bool show) {
     modality_.setVisible(show);
     modalityWeight_.setVisible(show);

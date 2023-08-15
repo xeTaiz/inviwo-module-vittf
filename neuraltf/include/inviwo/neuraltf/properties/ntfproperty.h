@@ -111,6 +111,7 @@ public:
     void clearAnnotations();
     void setAnnotations(const std::vector<size3_t>& coords);
     const std::vector<size3_t> getAnnotatedVoxels() const;
+    const std::shared_ptr<std::vector<size3_t>> getAnnotatedVoxelsPtr() const;
     void init();
 
     void showModalityProperties(bool show);
