@@ -1,25 +1,29 @@
 ivw_module(NeuralTF)
 
 set(HEADER_FILES
+    include/inviwo/neuraltf/bindings/pyneuraltf.h
     include/inviwo/neuraltf/neuraltfmodule.h
     include/inviwo/neuraltf/neuraltfmoduledefine.h
+    include/inviwo/neuraltf/processors/brushvolumeslicegl.h
     include/inviwo/neuraltf/processors/dinovolumerenderer.h
     include/inviwo/neuraltf/properties/ntfproperty.h
-    include/inviwo/neuraltf/bindings/pyneuraltf.h
 )
 ivw_group("Header Files" ${HEADER_FILES})
 
 set(SOURCE_FILES
+    src/bindings/pyneuraltf.cpp
     src/neuraltfmodule.cpp
+    src/processors/brushvolumeslicegl.cpp
     src/processors/dinovolumerenderer.cpp
     src/properties/ntfproperty.cpp
-    src/bindings/pyneuraltf.cpp
 )
 ivw_group("Source Files" ${SOURCE_FILES})
 
 set(SHADER_FILES
     glsl/image_identity.vert
     glsl/neuraltfraycaster.frag
+    glsl/annotation.vert
+    glsl/annotation.frag
 )
 ivw_group("Shader Files" ${SHADER_FILES})
 

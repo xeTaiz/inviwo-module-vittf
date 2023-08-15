@@ -32,6 +32,7 @@
 #include <inviwo/neuraltf/properties/ntfproperty.h>
 #include <inviwo/neuraltf/bindings/pyneuraltf.h>
 
+#include <inviwo/neuraltf/processors/brushvolumeslicegl.h>
 #include <modules/basegl/shader_resources.h>
 #include <modules/opengl/shader/shadermanager.h>
 
@@ -50,6 +51,7 @@ NeuralTFModule::NeuralTFModule(InviwoApplication* app)
     // Register objects that can be shared with the rest of inviwo here:
 
     // Processors
+    registerProcessor<BrushVolumeSliceGL>();
     registerProcessor<DINOVolumeRenderer>();
     // registerProcessor<NeuralTFProcessor>();
 
