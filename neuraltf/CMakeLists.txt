@@ -22,7 +22,6 @@ ivw_group("Source Files" ${SOURCE_FILES})
 set(SHADER_FILES
     glsl/image_identity.vert
     glsl/neuraltfraycaster.frag
-    glsl/annotation.vert
     glsl/annotation.frag
 )
 ivw_group("Shader Files" ${SHADER_FILES})
