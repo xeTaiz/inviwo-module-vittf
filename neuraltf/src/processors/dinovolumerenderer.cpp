@@ -140,7 +140,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     backgroundPort_.setOptional(true);
 
     addProperties(rawTransferFunction_, ntfs_, annotationButtons_, useAmbientOcclusion_, useShadowRays_, selectedModality_, selectedClass_, brushSize_, brushMode_, eraseMode_, updateSims_);
-    brushSize_.setVisible(false);
+    brushSize_.setVisible(true);
     brushMode_.setVisible(false);
     eraseMode_.setVisible(false);
     annotationButtons_.setCollapsed(true);
@@ -172,11 +172,8 @@ void DINOVolumeRenderer::updateCurrentSimilarityTF() {
         vec2 simRange = ntfProp->getSimilarityRamp();
         if (simRange.y < 0.99) {
             currentSimilarityTF_.set(TransferFunction(
-                {{simRange.x, vec4(0.f, 1.f, 0.f, 0.f)}, {simRange.y, vec4(0.f, 1.f, 0.f, 1.f)},
-                    {0.99,       vec4(0.f, 1.f, 0.f, 1.f)}, {1.0,        vec4(0.f, 0.f, 1.f, 1.f)}}));
-        } else {
-            currentSimilarityTF_.set(TransferFunction(
-                {{simRange.x, vec4(0.f, 1.f, 0.f, 0.f)}, {simRange.y, vec4(0.f, 1.f, 0.f, 1.f)}}));
+                {{simRange.x, vec4(0.447f, 0.525f, 0.827f, 0.f)}, {simRange.y, vec4(0.447f, 0.525f, 0.827f, 1.f)}}
+            ));
         }
     }
 }

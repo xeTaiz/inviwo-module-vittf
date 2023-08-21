@@ -43,8 +43,8 @@ void main() {
         minDist = min(minDist, distance(annotations[i], samplePos));
     } 
 #endif // DRAW_ANNOTATIONS
-    if (minDist < 0.015f) {
-        FragData0 = vec4(0,0,1, 1.0f);
+    if (minDist < 0.010f) {
+        FragData0 = vec4(0.1, 0.1, 1, 1.0f);
     } else {
         discard;
     }
