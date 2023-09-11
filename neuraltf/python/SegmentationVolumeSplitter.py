@@ -14,12 +14,19 @@ class SegmentationVolumeSplitter(ivw.Processor):
         self.addInport(self.inport, owner=False)
         self.outs = {}
         self.num_classes = 0
+        self.overrideNumClasses = ivw.properties.BoolProperty('overrideNumClasses', 'Override Num Classes', False)
+        self.numClasses = ivw.properties.IntProperty('numClasses', 'Num Classes', 0, 0, 10)
+        self.addProperty(self.overrideNumClasses)
+        self.addProperty(self.numClasses)
 
     def updateOutports(self):
         ''' Generates outports based on the number of components in the input volume. '''
         if self.inport.hasData():
             volume = self.inport.getData()
-            self.num_classes = round(volume.dataMap.valueRange[1]) + 1
+            if self.overrideNumClasses.value:
+                self.num_classes = self.numClasses.value
+            else:
+                self.num_classes = round(volume.dataMap.valueRange[1]) + 1
 
             if self.num_classes != len(self.outs):
                 for out in self.outs.values():
