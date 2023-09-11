@@ -102,6 +102,7 @@ private:
     EventProperty cycleModalitySelection_;
     EventProperty cycleClassSelection_;
     EventProperty addAnnotation_;
+    EventProperty updateSimilaritiesBtn_;
 };
 
 }  // namespace inviwo

@@ -119,6 +119,10 @@ DINOVolumeRenderer::DINOVolumeRenderer()
         updateSims_.set(true);
         e->markAsUsed();
     }, IvwKey::Space, KeyState::Press)
+    , updateSimilaritiesBtn_("updateSimilarities", "Update Similarities", [this](Event* e){
+        updateSims_.set(true);
+        e->markAsUsed();
+    }, IvwKey::B, KeyState::Press)
     {
     // Invalidation Levels
     camera_.setInvalidationLevel(InvalidationLevel::InvalidOutput);
