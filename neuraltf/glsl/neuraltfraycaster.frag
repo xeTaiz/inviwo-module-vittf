@@ -258,10 +258,12 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
                 tIncr = tEnd / samples;
                 vec3 offset = 0.5 * tIncr * rayDirection;
 #ifdef USE_SHADOW_RAYS
-                color[i].rgb *= 1.0 - 0.4*shadowRay(samplePos - offset, normalize(lighting.position - worldSpacePosition) * 2.0*tIncr, 300);
+                if (!first) {
+                    color[i].rgb *= 1.0 - 0.4*shadowRay(samplePos - offset, normalize(lighting.position - worldSpacePosition) * 2.0*tIncr, 500);
+                }
 #endif //USE_SHADOW_RAYS
 #ifdef USE_AMBIENT_OCCLUSION
-                float ao = 1.0 - ambientOcclusion(samplePos - 1.0*tIncr*normalize(grad[i]), normalize(-grad[i]), 128, 128, 2.0*tIncr);
+                float ao = 1.0 - ambientOcclusion(samplePos - offset, normalize(-grad[i]), 128, 128, 2.0*tIncr);
                 color[i].rgb *= ao;
                 result = vec4(vec3(ao), 1.0f); break;
 #endif //USE_AMBIENT_OCCLUSION
