@@ -44,7 +44,7 @@ void main() {
     } 
 #endif // DRAW_ANNOTATIONS
     if (minDist < 0.010f) {
-        FragData0 = vec4(0.1, 0.1, 1, 1.0f);
+        FragData0 = vec4(1.0, 0.7, 0.1, 1.0f);
     } else {
         discard;
     }
