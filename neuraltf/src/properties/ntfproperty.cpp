@@ -87,8 +87,8 @@ NTFProperty::NTFProperty(std::string_view identifier,
         {{0.01, vec4(1.0f, 1.0f, 1.0f, 0.0f)}, {0.02, vec4(1.0f, 1.0f, 1.0f, 1.0f)},
          {0.99, vec4(1.0f, 1.0f, 1.0f, 1.0f)}, {1.0, vec4(1.0f, 1.0f, 1.0f, 0.0f)}}), inport)
     , color_("color", "Color", vec4(1.0f), vec4(0.0f), vec4(1.0f), vec4(0.01f), InvalidationLevel::InvalidResources)
-    , isoValue_("isoValue", "Iso Value", 0.5, 0.0, 1.0, 0.01, InvalidationLevel::InvalidResources)
-    , similarityRamp_("simramp", "Ramp", 0.4, 0.7, 0.0, 1.0, 0.05, 1e-5f, InvalidationLevel::InvalidResources)
+    , isoValue_("isoValue", "Iso Value", 0.3, 0.0, 1.0, 0.01, InvalidationLevel::InvalidResources)
+    , similarityRamp_("simramp", "Ramp", 0.5, 0.9, 0.0, 1.0, 0.05, 1e-5f, InvalidationLevel::InvalidResources)
     , similarityReduction_("simreduction", "Reduction", { {"mean", "Mean", "mean"}, {"max", "Max", "max"} })
     , modality_("modality", "Modality", {
         {"channel0", "Channel 1", 0}, {"channel1", "Channel 2", 1},
