@@ -158,7 +158,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
         if (selectedClass_.size() > 0 && brushMode_.get()) {
             NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
             if (eraseMode_.get()){
-                ntfProp->removeAnnotation(size3_t(currentVoxelSelection_.get()), brushSize_.get() / 2.0);
+                ntfProp->removeAnnotation(size3_t(currentVoxelSelection_.get()), std::max(brushSize_.get() / 2.0, 7.0));
             } else {
                 size3_t volDim = volumePort_.getData()->getDimensions();
                 ntfProp->addAnnotation(size3_t(currentVoxelSelection_.get()), volDim, brushSize_.get() / 2.0);
@@ -172,7 +172,8 @@ DINOVolumeRenderer::DINOVolumeRenderer()
 void DINOVolumeRenderer::updateCurrentSimilarityTF() {
     if (selectedClass_.size() > 0) {
         NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
-        LogInfo("Setting current selection to " << selectedClass_.getSelectedIdentifier() << " which is " << ntfProp->getIdentifier());
+        if (!ntfProp) { return; }
+        LogInfo("Setting current selection to " << selectedClass_.getSelectedIdentifier() << " which is " << ntfProp->getDisplayName());
         vec2 simRange = ntfProp->getSimilarityRamp();
         if (simRange.y < 0.99) {
             currentSimilarityTF_.set(TransferFunction(
