@@ -31,6 +31,7 @@
 #include <inviwo/neuraltf/neuraltfmoduledefine.h>
 #include <inviwo/core/common/inviwomodule.h>
 #include <modules/python3/pythonprocessorfolderobserver.h>
+#include <modules/python3/pyutils.h>
 
 namespace inviwo {
 
@@ -40,6 +41,7 @@ public:
     virtual ~NeuralTFModule() = default;
 
 private:
+    pyutil::ModulePath scripts_;
     PythonProcessorFolderObserver pythonProcessorFolderObserver_;
 };
 

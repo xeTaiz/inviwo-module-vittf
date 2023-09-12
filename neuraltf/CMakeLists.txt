@@ -25,16 +25,27 @@ set(SHADER_FILES
     glsl/annotation.frag
 )
 ivw_group("Shader Files" ${SHADER_FILES})
+set(PYTHON_FILES
+    python/processors/DinoSimilarities.py
+    python/processors/NumpyVolumeSource.py
+    python/processors/SegmentationVolumeSplitter.py
+    python/processors/volume_numpy_export.py
+    python/bilateral_solver3d.py
+    python/infer.py
+)
+ivw_group("Python Files" ${PYTHON_FILES})
 
 set(TEST_FILES
     tests/unittests/neuraltf-unittest-main.cpp
 )
 ivw_add_unittest(${TEST_FILES})
 
-ivw_create_module(${SOURCE_FILES} ${HEADER_FILES} ${SHADER_FILES})
+ivw_create_module(${SOURCE_FILES} ${HEADER_FILES} ${SHADER_FILES} ${PYTHON_FILES})
 
 # Add shader directory to install package
 ivw_add_to_module_pack(${CMAKE_CURRENT_SOURCE_DIR}/glsl)
+ivw_add_to_module_pack(${CMAKE_CURRENT_SOURCE_DIR}/python)
+ivw_add_to_module_pack(${CMAKE_CURRENT_SOURCE_DIR}/python/processors)
 
 find_package(pybind11 CONFIG REQUIRED)
 target_link_libraries(inviwo-module-neuraltf PUBLIC pybind11::embed Python3::Python)

@@ -42,9 +42,11 @@ namespace py = pybind11;
 
 namespace inviwo {
 
-NeuralTFModule::NeuralTFModule(InviwoApplication* app) 
-    : InviwoModule(app, "NeuralTF") 
-    , pythonProcessorFolderObserver_(app, getPath() + "/python", *this) {
+NeuralTFModule::NeuralTFModule(InviwoApplication* app)
+    : InviwoModule(app, "NeuralTF")
+    , scripts_(getPath() + "/python")
+    , pythonProcessorFolderObserver_(app, getPath() + "/python/processors", *this)
+    {
     // Add a directory to the search path of the Shadermanager
     ShaderManager::getPtr()->addShaderSearchPath(getPath(ModulePath::GLSL));
 
@@ -80,7 +82,7 @@ NeuralTFModule::NeuralTFModule(InviwoApplication* app)
     // registerSettings(std::make_unique<NeuralTFSettings>());
     // registerMetaData(std::make_unique<NeuralTFMetaData>());
     // registerPortInspector("NeuralTFOutport", "path/workspace.inv");
-    // registerProcessorWidget(std::string processorClassName, std::unique_ptr<ProcessorWidget> processorWidget); 
+    // registerProcessorWidget(std::string processorClassName, std::unique_ptr<ProcessorWidget> processorWidget);
     // registerDrawer(util::make_unique_ptr<NeuralTFDrawer>());
     try {
         py::module ivwpy = pybind11::module::import("inviwopy");
