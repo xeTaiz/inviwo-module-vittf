@@ -638,7 +638,6 @@ void BrushVolumeSliceGL::renderAnnotations() {
         if (annotations.size() > 0) {
             annotationShader_.getFragmentShaderObject()->setShaderDefine("DRAW_ANNOTATIONS", drawAnnotations_.get());
             annotationShader_.getFragmentShaderObject()->addShaderDefine("NUM_ANNOTATIONS", std::to_string(annotations.size()));
-            LogInfo("NUM_ANNOTATIONS: " << annotations.size());
             annotationShader_.build();
             annotationShader_.activate();
             glUniform3fv(glGetUniformLocation(annotationShader_.getID(), "annotations"), annotations.size(), glm::value_ptr(annotations[0]));
