@@ -120,6 +120,8 @@ public:
     // Getter & Setter
     float getIsoValue() const { return isoValue_.get(); }
     void setIsoValue(float value) { isoValue_.set(value); }
+    float getProximity() const { return proximity_.get(); }
+    void setProximity(float value) { proximity_.set(value); }
     std::string getSimilarityReduction() const { return similarityReduction_.getSelectedValue(); }
     void setSimilarityReduction(std::string value) { similarityReduction_.setSelectedValue(value); }
     int getModality() const { return modality_.getSelectedValue(); }
@@ -128,8 +130,6 @@ public:
     void setModalityWeight(vec4 value) { modalityWeight_.set(value); }
     bool getRequiresUpdate() const { return requiresUpdate_; }
     void setRequiresUpdate(bool value) { requiresUpdate_ = value; }
-    vec2 getSimilarityRamp() const { return similarityRamp_.get(); }
-    void setSimilarityRamp(vec2 value) { similarityRamp_.set(value); }
     vec4 getColor() const { return color_.get(); }
     void setColor(vec4 value) { color_.set(value); }
     bool blsEnabled() const { return enableBLS_.isChecked(); }
@@ -144,7 +144,7 @@ public:
     TransferFunctionProperty tf_;
     FloatVec4Property color_;
     FloatProperty isoValue_;
-    FloatMinMaxProperty similarityRamp_;
+    FloatProperty proximity_;
     OptionPropertyString similarityReduction_;
     OptionPropertyInt modality_;
     FloatVec4Property modalityWeight_;
