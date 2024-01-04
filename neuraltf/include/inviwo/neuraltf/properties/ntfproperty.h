@@ -115,6 +115,7 @@ public:
     void init();
 
     void showModalityProperties(bool show);
+    void setAnnotationCount(const size_t);
 
     // Getter & Setter
     float getIsoValue() const { return isoValue_.get(); }
@@ -147,7 +148,6 @@ public:
     OptionPropertyString similarityReduction_;
     OptionPropertyInt modality_;
     FloatVec4Property modalityWeight_;
-    IntSizeTProperty annotationCount_;
     ButtonProperty clearAnnotationButton_;
     BoolCompositeProperty enableBLS_;
     IntSizeTProperty blsSigmaSpatial_;
