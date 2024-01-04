@@ -30,12 +30,12 @@ void exposeNTFBindings(py::module& m) {
         .def_property("modality", &NTFProperty::getModality, &NTFProperty::setModality)
         .def_property("modalityWeight", &NTFProperty::getModalityWeight, &NTFProperty::setModalityWeight)
         .def_property("isoValue", &NTFProperty::getIsoValue, &NTFProperty::setIsoValue)
+        .def_property("proximity", &NTFProperty::getProximity, &NTFProperty::setProximity)
         .def_property("color", &NTFProperty::getColor, &NTFProperty::setColor)
         .def_property("similarityReduction", &NTFProperty::getSimilarityReduction, &NTFProperty::setSimilarityReduction)
         .def_property("requiresUpdate", &NTFProperty::getRequiresUpdate, &NTFProperty::setRequiresUpdate)
         .def_property("blsEnabled", &NTFProperty::blsEnabled, &NTFProperty::enableBLS)
         .def_property("blsSigmas", &NTFProperty::getBLSSigma, &NTFProperty::setBLSSigma)
-        .def_property("ramp", &NTFProperty::getSimilarityRamp, &NTFProperty::setSimilarityRamp)
         .def_property("contrast", &NTFProperty::getContrast, &NTFProperty::setContrast)
         .def_property("connectedComponent", &NTFProperty::getConnectedComponent, &NTFProperty::setConnectedComponent);
 }
