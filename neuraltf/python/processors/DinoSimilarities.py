@@ -407,7 +407,7 @@ class DinoSimilarities(ivw.Processor):
                 vol = norm_minmax(vol)
 
             for k,sim in split_into_classes(sims).items():
-                ramp_min = simparams[k]['ramp'][0]
+                ramp_min = 0.1  # simparams[k]['ramp'][0]
                 sim = torch.where(sim >= ramp_min, sim, torch.zeros(1, dtype=typ, device=dev)) ** 2.5 # Throw away low similarities & exponentiate
                 sim = sim.mean(dim=1)
                 if simparams[k]['connected_component']:

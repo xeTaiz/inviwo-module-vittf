@@ -50,6 +50,7 @@
 
 #include <fmt/core.h>
 #include <inviwo/core/util/zip.h>                             // for enumerate, zipIterator, zipper
+#include <algorithm>
 
 namespace inviwo {
 
@@ -165,10 +166,18 @@ DINOVolumeRenderer::DINOVolumeRenderer()
             }
         }
     });
-    selectedClass_.onChange([this](){ updateCurrentSimilarityTF(); });
+    selectedClass_.onChange([this](){
+        NetworkLock lock;
+        updateCurrentSimilarityTF();
+        for(Property* p : ntfs_.getProperties()){
+            NTFProperty* ntfProp = static_cast<NTFProperty*>(p);
+            ntfProp->setCollapsed(ntfProp->getIdentifier().compare(selectedClass_.getSelectedIdentifier()) != 0);
+        }
+    });
     addProperties(raycasting_, camera_, lighting_, positionIndicator_);
 }
 
+/*
 void DINOVolumeRenderer::updateCurrentSimilarityTF() {
     if (selectedClass_.size() > 0) {
         NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
@@ -180,6 +189,23 @@ void DINOVolumeRenderer::updateCurrentSimilarityTF() {
                 {{simRange.x, vec4(0.447f, 0.525f, 0.827f, 0.f)}, {simRange.y, vec4(0.447f, 0.525f, 0.827f, 1.f)}}
             ));
         }
+    }
+}
+*/
+
+void DINOVolumeRenderer::updateCurrentSimilarityTF() {
+    if (selectedClass_.size() > 0) {
+        NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
+        if (!ntfProp) { return; }
+        LogInfo("Setting current selection to " << selectedClass_.getSelectedIdentifier() << " which is " << ntfProp->getDisplayName());
+        const float isoValue = ntfProp->getIsoValue();
+        const vec3 simColor = vec3(0.447f, 0.525f, 0.827f);
+        currentSimilarityTF_.set(TransferFunction({
+            {0.0,  vec4(0.f)},
+            {0.02, vec4(simColor, 0.2f)},
+            {std::max<float>(0.021f, isoValue - 1e-3), vec4(simColor, 0.45f)},
+            {std::min<float>(1.0f,   isoValue + 1e-3), vec4(simColor, 0.8f)}
+        }));
     }
 }
 
@@ -204,15 +230,14 @@ void DINOVolumeRenderer::initializeResources() {
             // Define Uniforms
             auto ntfProp (static_cast<const NTFProperty*>(ntfProps[i]));
             int modalityChannel = ntfProp->modality_.getSelectedValue();
-            vec2 simRange = ntfProp->getSimilarityRamp();
             vec4 color = ntfProp->getColor();
             str3dsampler.append("uniform sampler3D ntf{0};", i);
             strIsos.append("isoValue[{0}] = {1};", i, ntfProp->getIsoValue());
             // str2dsampler.append("uniform sampler2D similarityFunction{0};", i);
             // Generate code to use the transfer functions
             strApply.append("sim[{0}] = texture(ntf{0}, samplePos).x;", i);
-            // strApply.append("alpha[{0}] = applyTF(similarityFunction{0}, sim[{0}]).a;", i);
-            strApply.append("alpha[{0}] = mix(0.0, 1.0, clamp((sim[{0}] - {1}) / {2}, 0.0, 1.0));", i, simRange.x, std::max(simRange.y - simRange.x, 1e-5f));
+            // vec2 simRange = ntfProp->getSimilarityRamp();
+            // strApply.append("alpha[{0}] = mix(0.0, 1.0, clamp((sim[{0}] - {1}) / {2}, 0.0, 1.0));", i, simRange.x, std::max(simRange.y - simRange.x, 1e-5f));
             strGrads.append("grad[{0}] = gradientCentralDiff(voxel, ntf{0}, volumeParameters, samplePos, {1});", i, modalityChannel);
             if (numComponents < 4) {
                 strApply.append("color[{0}] = vec4({1},{2},{3},{4});", i, color.r, color.g, color.b, color.a);
@@ -356,7 +381,7 @@ void DINOVolumeRenderer::updateButtons() {
                 if (getNetwork()->isDeserializing()) return;
                 selectedModality_.setSelectedValue(ntfProp->modality_.getSelectedValue());
             });
-            ntfProp->similarityRamp_.onChange([&, ntfProp](){
+            ntfProp->isoValue_.onChange([&](){
                 if (getNetwork()->isDeserializing()) return;
                 updateSims_.set(true);
                 updateCurrentSimilarityTF();

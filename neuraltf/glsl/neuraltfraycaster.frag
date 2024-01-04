@@ -84,7 +84,7 @@ float shadowRay(vec3 samplePos, vec3 directionIncr, int maxSteps) {
     float result = 0.0;
     vec4 voxel;
     float sim[NUM_CLASSES + 1];
-    float alpha[NUM_CLASSES + 1];
+    //float alpha[NUM_CLASSES + 1];
     vec4 color[NUM_CLASSES + 1];
     float isoValue[NUM_CLASSES +1]; // TODO: uniform per class??
     isoValue[NUM_CLASSES] = 0.9;
@@ -97,8 +97,10 @@ float shadowRay(vec3 samplePos, vec3 directionIncr, int maxSteps) {
 
         // Render NTF Iso Surfaces
         for (int i = 0; i < NUM_CLASSES; ++i) {
-            if (alpha[i] < 0.01 || surfaceFound[i]) {continue;}
-            bool sampInside = alpha[i] > isoValue[i];
+            //if (alpha[i] < 0.01 || surfaceFound[i]) {continue;}
+            // bool sampInside = alpha[i] > isoValue[i];
+            if (sim[i] < 0.01 || surfaceFound[i]) {continue;}
+            bool sampInside = sim[i] > isoValue[i];
             if (sampInside) {
                 result += (1.0 - result) * color[i].a;
                 surfaceFound[i] = true;
@@ -139,7 +141,7 @@ float ambientOcclusion(vec3 rayStart, vec3 normal, int maxSteps, int numSamples,
     vec3 samplePos;
     vec3 dir;
     float sim[NUM_CLASSES + 1];
-    float alpha[NUM_CLASSES + 1];
+    //float alpha[NUM_CLASSES + 1];
     float isoValue[NUM_CLASSES +1]; // TODO: uniform per class??
     isoValue[NUM_CLASSES] = 0.9;
     bool surfaceFound[NUM_CLASSES + 1];
@@ -159,8 +161,10 @@ float ambientOcclusion(vec3 rayStart, vec3 normal, int maxSteps, int numSamples,
         while(maxSteps-- > 0){
             APPLY_NTFS
             for (int i = 0; i < NUM_CLASSES; ++i) {
-                if (alpha[i] < 0.01 || surfaceFound[i]) {continue;}
-                bool sampInside = alpha[i] > isoValue[i];
+                // if (alpha[i] < 0.01 || surfaceFound[i]) {continue;}
+                // bool sampInside = alpha[i] > isoValue[i];
+                if (sim[i] < 0.01 || surfaceFound[i]) {continue;}
+                bool sampInside = sim[i] > isoValue[i];
                 if (sampInside) {
                     occlusion += (1.0 - occlusion) * color[i].a;
                     surfaceFound[i] = true;
@@ -169,7 +173,7 @@ float ambientOcclusion(vec3 rayStart, vec3 normal, int maxSteps, int numSamples,
             } // for(NUM_CLASSES)
             if (occlusion > 0.95) {
                 break;
-            } 
+            }
             samplePos += stepSize * dir;
         } // while(maxSteps--)
         result += occlusion;
@@ -195,7 +199,7 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
     vec3 hsv;
     vec3 grad[NUM_CLASSES + 1];
     float sim[NUM_CLASSES + 1];
-    float alpha[NUM_CLASSES + 1];
+    //float alpha[NUM_CLASSES + 1];
     float isoValue[NUM_CLASSES +1]; // TODO: uniform per class??
     isoValue[NUM_CLASSES] = 0.9;
     bool surfaceFound[NUM_CLASSES + 1];
@@ -248,10 +252,11 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
         }
         // Render NTF Iso Surfaces
         for (int i = 0; i < NUM_CLASSES; ++i) {
-            if (alpha[i] < 0.01 || surfaceFound[i]) {continue;}
+            // if (alpha[i] < 0.01 || surfaceFound[i]) {continue;}
+            if (sim[i] < 0.01 || surfaceFound[i]) {continue;}
             if (first) {grad[i] = -entryNormal; }
-            float diff = alpha[i] - isoValue[i];
-            bool sampInside = alpha[i] > isoValue[i];
+            float diff = sim[i] - isoValue[i];
+            bool sampInside = diff > 0.0;
             if (abs(diff) < 0.01 || (sampInside && first)) {
                 color[i].rgb = APPLY_LIGHTING(lighting, color[i].rgb, color[i].rgb, vec3(1.0),
                     worldSpacePosition, normalize(-grad[i]), toCameraDir);
@@ -265,7 +270,6 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
 #ifdef USE_AMBIENT_OCCLUSION
                 float ao = 1.0 - ambientOcclusion(samplePos - offset, normalize(-grad[i]), 128, 128, 2.0*tIncr);
                 color[i].rgb *= ao;
-                result = vec4(vec3(ao), 1.0f); break;
 #endif //USE_AMBIENT_OCCLUSION
                 result.rgb = result.rgb + (1.0 - result.a) * color[i].a * color[i].rgb;
                 result.a   = result.a   + (1.0 - result.a) * color[i].a;
