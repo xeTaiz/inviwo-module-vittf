@@ -200,11 +200,14 @@ void DINOVolumeRenderer::updateCurrentSimilarityTF() {
         LogInfo("Setting current selection to " << selectedClass_.getSelectedIdentifier() << " which is " << ntfProp->getDisplayName());
         const float isoValue = ntfProp->getIsoValue();
         const vec3 simColor = vec3(0.447f, 0.525f, 0.827f);
+        const vec3 lowColor = vec3(0.827f, 0.3f, 0.3f);
+        const vec3 thrColor = vec3(0.3f, 0.8f, 0.3f);
         currentSimilarityTF_.set(TransferFunction({
-            {0.0,  vec4(0.f)},
-            {0.02, vec4(simColor, 0.2f)},
-            {std::max<float>(0.021f, isoValue - 1e-3), vec4(simColor, 0.45f)},
-            {std::min<float>(1.0f,   isoValue + 1e-3), vec4(simColor, 0.8f)}
+            {0.099, vec4(0.f)},
+            {0.1,   vec4(lowColor, 0.1f)},
+            {std::max<float>(0.1f, isoValue - 1e-3), vec4(thrColor, 0.30f)},
+            {std::min<float>(1.0f, isoValue + 1e-3), vec4(simColor, 0.8f)},
+            {1.0,   vec4(simColor, 0.2f)}
         }));
     }
 }
@@ -383,9 +386,30 @@ void DINOVolumeRenderer::updateButtons() {
             });
             ntfProp->isoValue_.onChange([&](){
                 if (getNetwork()->isDeserializing()) return;
-                updateSims_.set(true);
+                NetworkLock lock;
                 updateCurrentSimilarityTF();
+                updateSims_.set(true);
             });
+            ntfProp->proximity_.onChange([&](){
+                if (getNetwork()->isDeserializing()) return;
+                updateSims_.set(true);
+            });
+           ntfProp->color_.onChange([&](){
+                if (getNetwork()->isDeserializing()) return;
+                invalidate(InvalidationLevel::InvalidResources);
+            });
+           ntfProp->connectedComponent_.onChange([&](){
+                if (getNetwork()->isDeserializing()) return;
+                updateSims_.set(true);
+           });
+           ntfProp->enableBLS_.onChange([&](){
+                if (getNetwork()->isDeserializing()) return;
+                updateSims_.set(true);
+           });
+           ntfProp->clearAnnotationButton_.onChange([&](){
+                if (getNetwork()->isDeserializing()) return;
+                updateSims_.set(true);
+           });
         }
     }
     // Update selectedClass dropdown
