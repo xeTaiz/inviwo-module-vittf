@@ -77,6 +77,7 @@ void NTFProperty::init() {
     modalityWeight_.setVisible(false);
     similarityReduction_.setVisible(false);
     // Hide currently deprecated properties TODO: remove or use
+    connectedComponent_.setVisible(false);
     contrastFactor_.setVisible(false);
 }
 
