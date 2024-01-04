@@ -132,7 +132,8 @@ def get_similarity_params(proc_name, return_empty=False):
         ntf.identifier: {
             'reduction': reduce_fns[ntf.similarityReduction],
             'modality': ntf.modality,
-            'ramp': (ntf.ramp.x, ntf.ramp.y),
+            'isovalue': ntf.isoValue,
+            'proximity': ntf.proximity,
             'contrast': ntf.contrast,
             'connected_component': ntf.connectedComponent,
             'modalityWeight': torch.from_numpy(ntf.modalityWeight.array),
@@ -378,6 +379,7 @@ class DinoSimilarities(ivw.Processor):
             in_dims = tuple(inv_vol.dimensions.array.tolist())
             sim_shape = tuple(map(lambda d: int(d // self.similarityVolumeScalingFactor.value), in_dims))
             vol_extent = torch.tensor([[[*in_dims]]], device=dev, dtype=typ)
+
             def split_into_classes(t):
                 sims = {}
                 idx = 0
@@ -385,9 +387,11 @@ class DinoSimilarities(ivw.Processor):
                     sims[k] = t[:, idx:idx+v.size(0)]
                     idx += v.size(0)
                 return sims
-            if len(annotations) == 0: return  # No NTFs
+            if len(annotations) == 0:
+                return {}  # No NTFs
             abs_coords = torch.cat(list(annotations.values())).to(dev).to(typ)
-            if abs_coords.numel() == 0: return # No annotation in any of the NTFs
+            if abs_coords.numel() == 0:
+                return {}  # No annotation in any of the NTFs
             rel_coords = (abs_coords.float() + 0.5) / vol_extent * 2.0 - 1.0
 
             qf = sample_features3d(self.feat_vol, rel_coords, mode='bilinear')
@@ -395,23 +399,33 @@ class DinoSimilarities(ivw.Processor):
             sims = torch.einsum('mfwhd,mcaf->mcawhd', (self.feat_vol, qf)).squeeze(1)
 
             # bls_scale = self.similarityVolumeScalingFactor.value / 4.0
-            lr_abs_coords = torch.round((rel_coords * 0.5 + 0.5) * (torch.tensor([*sims.shape[-3:]]).to(dev).to(typ) - 1.0)).long() # (A, 3)
-            lr_abs_coords = split_into_classes(make_3d(lr_abs_coords)) # (1, A, 3) -> {NTF_ID: (1, a, 3)}
+            # lr_abs_coords = torch.round((rel_coords * 0.5 + 0.5) * (torch.tensor([*sims.shape[-3:]]).to(dev).to(typ) - 1.0)).long()  # (A, 3)
+            # lr_abs_coords = split_into_classes(make_3d(lr_abs_coords)) # (1, A, 3) -> {NTF_ID: (1, a, 3)}
             sim_split = {}
             rel_coords_dict = split_into_classes(make_3d(rel_coords))
             if any([simparams[k]['bls_enabled'] for k in simparams.keys()]):
-                in_vol = np.ascontiguousarray(inv_vol.data.astype(np.float32)) # TODO: refactor out of this loop
-                if in_vol.ndim == 4: in_vol = np.transpose(in_vol, (3,0,1,2))
+                in_vol = np.ascontiguousarray(inv_vol.data.astype(np.float32))
+                if in_vol.ndim == 4:
+                    in_vol = np.transpose(in_vol, (3,0,1,2))
                 vol = F.interpolate(make_5d(torch.from_numpy(in_vol.copy())).to(dev), sim_shape, mode='trilinear').squeeze(0)
-                m = vol.size(0)
                 vol = norm_minmax(vol)
 
             for k,sim in split_into_classes(sims).items():
                 ramp_min = 0.1  # simparams[k]['ramp'][0]
-                sim = torch.where(sim >= ramp_min, sim, torch.zeros(1, dtype=typ, device=dev)) ** 2.5 # Throw away low similarities & exponentiate
+                sim = torch.where(sim >= ramp_min, sim, torch.zeros(1, dtype=typ, device=dev)) ** 2.5
                 sim = sim.mean(dim=1)
+                proximity = simparams[k]['proximity']
+                isovalue  = simparams[k]['isovalue']
+                if proximity > 0:
+                    annotation_pos = rel_coords_dict[k].squeeze(0)  # (A, 3)
+                    ls = torch.linspace(-1, 1, 48, dtype=typ, device=dev)
+                    mg = torch.stack(torch.meshgrid(ls, ls, ls, indexing='ij'), dim=-1).unsqueeze(0).expand(annotation_pos.size(0), -1, -1, -1, -1)
+                    prox = torch.linalg.vector_norm(annotation_pos[:, None, None, None, :] - mg, dim=-1).min(dim=0).values  # (32, 32, 32)
+                    prox = torch.clamp(torch.exp(-10*proximity*(prox-0.1)), 0.0, 1.0)
+                    sim *= F.interpolate(make_5d(prox), sim.shape[-3:], mode='trilinear').squeeze(0)
+
                 if simparams[k]['connected_component']:
-                    sim[~largest_connected_component(sim.squeeze() > ramp_min)[None]] = 0.0
+                    sim[~largest_connected_component(sim.squeeze() > isovalue)[None]] = 0.0
 
                 if simparams[k]['bls_enabled']:
                     bls_params = {
@@ -432,10 +446,10 @@ class DinoSimilarities(ivw.Processor):
                     blsim = 0.0
                     for i, ssim, mvol in zip(count(), sim, svol):
                         if simparams[k]['modalityWeight'][i] > 0:
-                            quant = 0.99 * ssim.max() # ssim.quantile(q=0.99)
-                            crops, mima = crop_pad([ssim, mvol], thresh=ramp_min * quant, pad=5)
+                            quant = 0.99 * ssim.max()
+                            crops, mima = crop_pad([ssim, mvol], thresh=quant*isovalue, pad=5)
                             csim, cvol = crops
-                            mask = filter_dilation(make_5d(csim), thresh=ramp_min * quant, size=7).squeeze()
+                            mask = filter_dilation(make_5d(csim), thresh=quant*isovalue, size=7).squeeze()
                             csim = apply_bilateral_solver3d(make_4d(csim), cvol, grid_params=bls_params) * simparams[k]['modalityWeight'][i]
                             csim[~mask] = 0.0
                             quant = 0.99 * csim.max()  # csim.quantile(q=0.9999)
