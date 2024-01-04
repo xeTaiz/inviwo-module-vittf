@@ -16,7 +16,11 @@ import inspect
 from contextlib import contextmanager
 
 from scipy.ndimage import grey_closing, grey_opening
-from cc_torch import connected_components_labeling
+try:
+    from cc_torch import connected_components_labeling
+    has_cc_torch = True
+except:
+    has_cc_torch = False
 
 def log(name, t):
     # if isinstance(t, (np.ndarray, np.matrix)):
@@ -52,6 +56,8 @@ def largest_connected_component(mask):
         Returns:
             Tensor: Largest connected component of `mask` as binary mask
     '''
+    if not has_cc_torch:
+        return torch.ones_like(mask, dtype=torch.bool)
     dims_even = (torch.Tensor([*mask.shape[-3:]]) % 2 == 0).all()
     if dims_even:
         em = slice(None)
