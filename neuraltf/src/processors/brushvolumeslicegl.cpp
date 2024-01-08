@@ -208,21 +208,24 @@ BrushVolumeSliceGL::BrushVolumeSliceGL()
           "mouseShiftSlice", "Mouse Slice Shift", [this](Event* e) { eventShiftSlice(e); },
           std::make_unique<WheelEventMatcher>())
 
-    , mouseSetMarker_(
-          "mouseSetMarker", "Mouse Set Marker", [this](Event* e) { eventSetMarker(e, false); },
-          MouseButton::Left, MouseState::Press | MouseState::Move)
-    , mouseBrushMarker_(
-          "mouseBrushMarker", "Mouse Brush Marker", [this](Event* e) { eventSetMarker(e, true); },
-          MouseButton::Left, MouseState::Press | MouseState::Move, KeyModifier::Shift)
-    , mouseEraseMarker_("mouseEraseMarker", "Mouse Erase Marker", [this](Event* e) { eventEraseMarker(e); },
-          MouseButton::Left, MouseState::Press | MouseState::Move, KeyModifier::Control)
+    , mouseSetMarker_("mouseSetMarker", "Mouse Set Marker", [this](Event* e) {
+          eventSetMarker(e, false);
+        }, MouseButton::Left, MouseState::Press | MouseState::Move, KeyModifier::None)
+    , mouseBrushMarker_("mouseBrushMarker", "Mouse Brush Marker", [this](Event* e) {
+          eventSetMarker(e, true);
+        }, MouseButton::Left, MouseState::Press, KeyModifier::Shift)
+    , mouseEraseMarker_("mouseEraseMarker", "Mouse Erase Marker", [this](Event* e) {
+          eventEraseMarker(e);
+        }, MouseButton::Left, MouseState::Press | MouseState::Move, KeyModifier::Control)
     , mousePositionTracker_(
           "mousePositionTracker", "Mouse Position Tracker",
           [this](Event* e) { eventUpdateMousePos(e); }, MouseButton::None, MouseState::Move)
     , mouseRelease_("mouseRelease", "Mouse Release", [this](Event* e) { eventMouseRelease(e); },
                     MouseButton::Left, MouseState::Release, KeyModifier::None)
-    , brushRelease_("brushRelease", "Brush Release", [this](Event* e) { eventMouseRelease(e); },
-                    MouseButton::Left, MouseState::Release, KeyModifier::Shift)
+    , brushRelease_("brushRelease", "Brush Release", [this](Event* e) {
+            //eventSetMarker(e, true);
+            eventMouseRelease(e);
+        }, MouseButton::Left, MouseState::Release, KeyModifier::Shift)
     , eraseRelease_("EraseRelease", "Erase Release", [this](Event* e) { eventMouseRelease(e); },
                     MouseButton::Left, MouseState::Release, KeyModifier::Control)
     , stepSliceUp_(
@@ -905,7 +908,9 @@ void BrushVolumeSliceGL::eventMouseRelease(Event* event) {
     triggerUpdateSims_ = false;
     brushMode_.set(false);
     eraseMode_.set(false);
-    clearBrushMesh();
+    if (drawBrush_) {
+        clearBrushMesh();
+    }
 }
 
 void BrushVolumeSliceGL::sliceChange() {
