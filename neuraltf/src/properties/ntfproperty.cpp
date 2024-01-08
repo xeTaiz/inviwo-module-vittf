@@ -142,25 +142,10 @@ void NTFProperty::deserialize(Deserializer& d) {
     PropertyOwner::deserialize(d);
 }
 
-void NTFProperty::addAnnotation(const size3_t coord, const size3_t volDims, const float distanceThreshold){
+void NTFProperty::addAnnotation(const size3_t coord, const size3_t volDims){
     size_t oldSz = annotatedVoxels_.size();
-    if (distanceThreshold > 1.0f) {
-        size_t distFloor = std::floor(distanceThreshold);
-        size3_t minCoord = glm::clamp(coord - size3_t(distFloor), size3_t(0), volDims - size3_t(1));
-        size3_t maxCoord = glm::clamp(coord + size3_t(distFloor), size3_t(0), volDims - size3_t(1));
-        LogInfo("distFloor: " << distFloor);
-        for (size_t x = minCoord.x; x <= maxCoord.x; ++x) {
-            for (size_t y = minCoord.y; y <= maxCoord.y; ++y) {
-                for (size_t z = minCoord.z; z <= maxCoord.z ; ++z) {
-                    if (glm::distance(vec3(coord), vec3(x, y, z)) <= distanceThreshold) {
-                        annotatedVoxels_.insert(size3_t(x, y, z));
-                    }
-                }
-            }
-        }
-    } else {
-        annotatedVoxels_.insert(coord);
-    }
+    annotatedVoxels_.insert(coord);
+
     if (oldSz < annotatedVoxels_.size()) {
         requiresUpdate_ = true;
         setAnnotationCount(annotatedVoxels_.size());

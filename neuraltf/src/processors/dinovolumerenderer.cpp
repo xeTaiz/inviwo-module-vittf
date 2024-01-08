@@ -85,7 +85,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
         {"channel0", "Channel 1", 0}, {"channel1", "Channel 2", 1},
         {"channel2", "Channel 3", 2}, {"channel3", "Channel 4", 3} })
     , selectedClass_("selectedClass", "Selected Class")
-    , brushSize_("brushSize", "Brush Size", 1.0f, 1.0f, 16.0f, 1.0f, InvalidationLevel::Valid)
+    , brushSize_("brushSize", "Brush Size", 12.0f, 1.0f, 16.0f, 1.0f, InvalidationLevel::Valid)
     , brushMode_("brushMode", "Brush Mode", false, InvalidationLevel::Valid)
     , eraseMode_("eraseMode", "Erase Mode", false, InvalidationLevel::Valid)
     , updateSims_("updateSims", "Update Similarities", false, InvalidationLevel::Valid)
@@ -162,7 +162,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
                 ntfProp->removeAnnotation(size3_t(currentVoxelSelection_.get()), std::max(brushSize_.get() / 2.0, 7.0));
             } else {
                 size3_t volDim = volumePort_.getData()->getDimensions();
-                ntfProp->addAnnotation(size3_t(currentVoxelSelection_.get()), volDim, brushSize_.get() / 2.0);
+                ntfProp->addAnnotation(size3_t(currentVoxelSelection_.get()), volDim);
             }
         }
     });
@@ -431,7 +431,7 @@ void DINOVolumeRenderer::addAnnotation() {
         size3_t volDim = volumePort_.getData()->getDimensions();
         size3_t coord (currentVoxelSelection_.get());
         NTFProperty* ntfProp = static_cast<NTFProperty*>(ntfs_.getPropertyByIdentifier(selectedClass_.getSelectedIdentifier()));
-        ntfProp->addAnnotation(coord, volDim, brushSize_.get() / 2.0);
+        ntfProp->addAnnotation(coord, volDim);
     }
 }
 

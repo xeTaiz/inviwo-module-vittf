@@ -106,7 +106,7 @@ public:
     virtual Property& setIdentifier(const std::string_view identifier) override;
     virtual void deserialize(Deserializer&) override;
 
-    void addAnnotation(const size3_t coord, const size3_t volDims, const float distanceThreshold = 1e-4f);
+    void addAnnotation(const size3_t coord, const size3_t volDims);
     void removeAnnotation(const size3_t coord, const float distanceThreshold = 1e-4f);
     void clearAnnotations();
     void setAnnotations(const std::vector<size3_t>& coords);
