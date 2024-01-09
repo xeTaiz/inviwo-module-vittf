@@ -64,6 +64,7 @@ void NTFProperty::init() {
         // enableBLS_.setCollapsed(!enableBLS_.isChecked());
         requiresUpdate_ = true;
     });
+    color_.onChange([&](){ requiresUpdate_ = true; });
     blsSigmaSpatial_.onChange([&](){requiresUpdate_ = true;});
     blsSigmaChroma_.onChange([&](){requiresUpdate_ = true;});
     blsSigmaLuma_.onChange([&](){requiresUpdate_ = true;});

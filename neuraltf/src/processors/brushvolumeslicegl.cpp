@@ -217,7 +217,17 @@ BrushVolumeSliceGL::BrushVolumeSliceGL()
     , mouseEraseMarker_("mouseEraseMarker", "Mouse Erase Marker", [this](Event* e) {
           eventEraseMarker(e);
         }, MouseButton::Left, MouseState::Press | MouseState::Move, KeyModifier::Control)
-    , mousePositionTracker_(
+    , showEraseMode_("showEraseMode_", "Show Erase Mode", [this](Event* e) {
+          indicatorColor_.set(vec4(1.000, 0.300, 0.300, 0.800));
+          indicatorSize_.set(5.5f);
+          e->markAsUsed();
+        }, IvwKey::LeftControl, KeyState::Press, KeyModifier::Control)
+    , showNormalMode_("showNormalMode", "Show Normal Mode", [this](Event* e) {
+          indicatorColor_.set(vec4(1.000, 0.800, 0.100, 0.800));
+          indicatorSize_.set(1.0f);
+          e->markAsUsed();
+        }, IvwKey::LeftControl, KeyState::Release, KeyModifier::Control)
+, mousePositionTracker_(
           "mousePositionTracker", "Mouse Position Tracker",
           [this](Event* e) { eventUpdateMousePos(e); }, MouseButton::None, MouseState::Move)
     , mouseRelease_("mouseRelease", "Mouse Release", [this](Event* e) { eventMouseRelease(e); },
@@ -358,6 +368,7 @@ BrushVolumeSliceGL::BrushVolumeSliceGL()
     addProperty(mouseSetMarker_);
     addProperty(mouseBrushMarker_);
     addProperty(mouseEraseMarker_);
+    addProperties(showEraseMode_, showNormalMode_);
     addProperties(mouseRelease_, brushRelease_, eraseRelease_);
 
     mousePositionTracker_.setVisible(false);

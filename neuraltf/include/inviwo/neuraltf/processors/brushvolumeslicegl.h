@@ -218,6 +218,8 @@ private:
     EventProperty mouseSetMarker_;
     EventProperty mouseBrushMarker_;
     EventProperty mouseEraseMarker_;
+    EventProperty showEraseMode_;
+    EventProperty showNormalMode_;
     EventProperty mousePositionTracker_;
     EventProperty mouseRelease_;
     EventProperty brushRelease_;
