@@ -27,10 +27,13 @@
  *
  *********************************************************************************/
 
+#include "inviwo/core/properties/compositeproperty.h"
 #include <inviwo/neuraltf/properties/ntfproperty.h>
 #include <inviwo/core/properties/valuewrapper.h>              // for PropertySerializa...
 #include <inviwo/core/properties/propertysemantics.h>         // for PropertySemantics
 #include <string>
+#include <vector>
+#include <algorithm>
 #include <unordered_set>
 
 
@@ -70,7 +73,7 @@ void NTFProperty::init() {
     proximity_.onChange([&](){requiresUpdate_ = true;});
     contrastFactor_.onChange([&](){requiresUpdate_ = true;});
     enableBLS_.setCollapsed(!enableBLS_.isChecked());
-    addProperties(color_, similarityReduction_, modality_, modalityWeight_, isoValue_, proximity_, contrastFactor_, connectedComponent_, clearAnnotationButton_, enableBLS_);
+    addProperties(color_, similarityReduction_, modality_, modalityWeight_, isoValue_, proximity_, contrastFactor_, connectedComponent_, clearAnnotationButton_, clearLastAnnotationButton_, enableBLS_);
 
     modality_.setVisible(false);
     modalityWeight_.setVisible(false);
@@ -78,6 +81,7 @@ void NTFProperty::init() {
     // Hide currently deprecated properties TODO: remove or use
     connectedComponent_.setVisible(false);
     contrastFactor_.setVisible(false);
+    setAnnotationCount(annotatedVoxels_.size());
 }
 
 NTFProperty::NTFProperty(std::string_view identifier,
@@ -98,6 +102,7 @@ NTFProperty::NTFProperty(std::string_view identifier,
         {"channel2", "Channel 3", 2}, {"channel3", "Channel 4", 3} }, 0, InvalidationLevel::InvalidResources)
     , modalityWeight_("modalityWeight", "Modality Weighting", vec4(1.0, 0,0,0), vec4(0), vec4(1))
     , clearAnnotationButton_("clearAnnotations", "Clear Annotations", [&](){NTFProperty::clearAnnotations();})
+    , clearLastAnnotationButton_("clearLastAnnotation", "Undo Last Annotation", [&](){NTFProperty::removeLastAnnotation();})
     , enableBLS_("enableBLS", "Bilateral Solver", false, InvalidationLevel::InvalidResources)
     , blsSigmaSpatial_("blsSigmaSpatial", "Sigma Spatial", 5, 1, 32)
     , blsSigmaChroma_("blsSigmaChroma", "Sigma Chroma", 5, 1, 16)
@@ -118,6 +123,7 @@ NTFProperty::NTFProperty(const NTFProperty& other)
     , modality_(other.modality_)
     , modalityWeight_(other.modalityWeight_)
     , clearAnnotationButton_("clearAnnotations", "Clear Annotations", [&](){NTFProperty::clearAnnotations();})
+    , clearLastAnnotationButton_("clearLastAnnotation", "Undo Last Annotation", [&](){NTFProperty::removeLastAnnotation();})
     , enableBLS_(other.enableBLS_)
     , blsSigmaSpatial_(other.blsSigmaSpatial_)
     , blsSigmaChroma_(other.blsSigmaChroma_)
@@ -140,6 +146,11 @@ CompositeProperty& NTFProperty::setCollapsed(bool val) {
     return CompositeProperty::setCollapsed(val);
 }
 
+CompositeProperty& NTFProperty::resetToDefaultState() {
+    clearLastAnnotationButton_.pressButton();
+    return *this;
+}
+
 void NTFProperty::deserialize(Deserializer& d) {
     Property::deserialize(d);
     std::string num = std::string(getIdentifier().size() > 0 ? getIdentifier().substr(3) : "");
@@ -149,7 +160,7 @@ void NTFProperty::deserialize(Deserializer& d) {
 
 void NTFProperty::addAnnotation(const size3_t coord, const size3_t volDims){
     size_t oldSz = annotatedVoxels_.size();
-    annotatedVoxels_.insert(coord);
+    annotatedVoxels_.push_back(coord);
 
     if (oldSz < annotatedVoxels_.size()) {
         requiresUpdate_ = true;
@@ -172,29 +183,40 @@ void NTFProperty::removeAnnotation(const size3_t coord, const float distanceThre
     }
 }
 
+void NTFProperty::removeLastAnnotation(){
+    if (annotatedVoxels_.size() > 0) {
+        annotatedVoxels_.pop_back();
+    }
+    setAnnotationCount(annotatedVoxels_.size());
+    requiresUpdate_ = true;
+}
+
 void NTFProperty::clearAnnotations(){
     annotatedVoxels_.clear();
     setAnnotationCount(size_t(0));
+    requiresUpdate_ = true;
 }
 
 void NTFProperty::setAnnotationCount(const size_t annotationCount) {
     if (annotationCount > 0) {
         clearAnnotationButton_.setDisplayName("Clear Annotations (" + std::to_string(annotationCount) +")");
         clearAnnotationButton_.setReadOnly(false);
+        clearLastAnnotationButton_.setReadOnly(false);
     } else {
         clearAnnotationButton_.setDisplayName("Clear Annotations");
         clearAnnotationButton_.setReadOnly(true);
+        clearLastAnnotationButton_.setReadOnly(true);
     }
 }
 
 void NTFProperty::setAnnotations(const std::vector<size3_t>& annotations){
     annotatedVoxels_.clear();
-    annotatedVoxels_.insert(annotations.begin(), annotations.end());
+    std::copy(annotations.begin(), annotations.end(), annotatedVoxels_.begin());
     setAnnotationCount(annotatedVoxels_.size());
 }
 
 const std::vector<size3_t> NTFProperty::getAnnotatedVoxels() const {
-    return std::vector<size3_t>(annotatedVoxels_.begin(), annotatedVoxels_.end());
+    return annotatedVoxels_;
 }
 
 const std::shared_ptr<std::vector<size3_t>> NTFProperty::getAnnotatedVoxelsPtr() const {

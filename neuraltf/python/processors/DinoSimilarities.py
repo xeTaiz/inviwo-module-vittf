@@ -466,17 +466,21 @@ class DinoSimilarities(ivw.Processor):
             return sim_split
 
     def updateSimilarities(self):
-        annotations, requires_update = get_annotations(self.dinoProcessorIdentifier.value, return_requpdate=True)
+        annotations, requires_update = get_annotations(self.dinoProcessorIdentifier.value, return_requpdate=True, return_empty=True)
         total_todo = requires_update.keys()
-        if len(requires_update) > 0 or len(annotations.keys()) > len(self.similarities):
+        if len(requires_update) > 0:  # or len(annotations.keys()) > len(self.similarities):
             to_update = set(requires_update.keys()).union(set(k for k in annotations.keys() if k not in self.similarities.keys()))
             self.similarities.update(self.computeSimilarities({ k: v for k,v in annotations.items() if k in to_update}))
+            for k in requires_update.keys():
+                if k in self.similarities.keys() and len(annotations[k]) == 0:
+                    self.similarities[k] = torch.zeros(4,4,4, dtype=torch.uint8)
             if requires_update is not None:
                 for ntf in requires_update.values():
                     ntf.requiresUpdate = False
             return to_update
         else:
             print('Nothing to update')
+
             return set()
 
     def clearSimilarity(self):

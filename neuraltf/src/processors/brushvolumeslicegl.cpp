@@ -399,7 +399,10 @@ void BrushVolumeSliceGL::initializeResources() {
 }
 
 void BrushVolumeSliceGL::invokeEvent(Event* event) {
-    if (dynamic_cast<InteractionEvent*>(event) && !handleInteractionEvents_) return;
+    if (dynamic_cast<InteractionEvent*>(event) && !handleInteractionEvents_) {
+        event->markAsUsed();
+        return;
+    }
     Processor::invokeEvent(event);
     if (event->getAs<ResizeEvent>()) {
         planeSettingsChanged();
@@ -834,6 +837,7 @@ void BrushVolumeSliceGL::eventShiftSlice(Event* event) {
     } else if (steps > 0) {
         shiftSlice(3);
     }
+    sliceXYZ_.propertyModified();
     event->markAsUsed();
 }
 

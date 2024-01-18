@@ -410,6 +410,10 @@ void DINOVolumeRenderer::updateButtons() {
                 if (getNetwork()->isDeserializing()) return;
                 updateSims_.set(true);
            });
+           ntfProp->clearLastAnnotationButton_.onChange([&](){
+                if (getNetwork()->isDeserializing()) return;
+                updateSims_.set(true);
+           });
         }
     }
     // Update selectedClass dropdown

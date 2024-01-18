@@ -106,9 +106,11 @@ public:
     virtual Property& setIdentifier(const std::string_view identifier) override;
     virtual void deserialize(Deserializer&) override;
     virtual CompositeProperty& setCollapsed(bool) override;
+    virtual CompositeProperty& resetToDefaultState() override;
 
     void addAnnotation(const size3_t coord, const size3_t volDims);
     void removeAnnotation(const size3_t coord, const float distanceThreshold = 1e-4f);
+    void removeLastAnnotation();
     void clearAnnotations();
     void setAnnotations(const std::vector<size3_t>& coords);
     const std::vector<size3_t> getAnnotatedVoxels() const;
@@ -150,6 +152,7 @@ public:
     OptionPropertyInt modality_;
     FloatVec4Property modalityWeight_;
     ButtonProperty clearAnnotationButton_;
+    ButtonProperty clearLastAnnotationButton_;
     BoolCompositeProperty enableBLS_;
     IntSizeTProperty blsSigmaSpatial_;
     IntSizeTProperty blsSigmaChroma_;
@@ -160,7 +163,8 @@ public:
     VolumeInport* volumeInport_;
 
 private:
-    std::unordered_set<size3_t> annotatedVoxels_;
+    //std::unordered_set<size3_t> annotatedVoxels_;
+    std::vector<size3_t> annotatedVoxels_;
     bool requiresUpdate_;
 };
 
