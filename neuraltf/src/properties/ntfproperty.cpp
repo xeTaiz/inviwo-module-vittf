@@ -60,8 +60,6 @@ void NTFProperty::init() {
     color_.setSemantics(PropertySemantics::Color);
     enableBLS_.addProperties(blsSigmaSpatial_, blsSigmaChroma_, blsSigmaLuma_);
     enableBLS_.onChange([&](){
-        // TODO: re-enable after study
-        // enableBLS_.setCollapsed(!enableBLS_.isChecked());
         requiresUpdate_ = true;
     });
     color_.onChange([&](){ requiresUpdate_ = true; });
@@ -134,6 +132,12 @@ Property& NTFProperty::setIdentifier(const std::string_view identifier){
     std::string num = std::string(identifier.size() > 0 ? identifier.substr(3) : "");
     tf_.setIdentifier("transferFunction" + num);
     return Property::setIdentifier(identifier);
+}
+
+CompositeProperty& NTFProperty::setCollapsed(bool val) {
+    // TODO: do or remove
+    // LogInfo("Collapsing " << this->getIdentifier());
+    return CompositeProperty::setCollapsed(val);
 }
 
 void NTFProperty::deserialize(Deserializer& d) {

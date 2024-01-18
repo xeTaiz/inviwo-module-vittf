@@ -227,7 +227,7 @@ BrushVolumeSliceGL::BrushVolumeSliceGL()
           indicatorSize_.set(1.0f);
           e->markAsUsed();
         }, IvwKey::LeftControl, KeyState::Release, KeyModifier::Control)
-, mousePositionTracker_(
+    , mousePositionTracker_(
           "mousePositionTracker", "Mouse Position Tracker",
           [this](Event* e) { eventUpdateMousePos(e); }, MouseButton::None, MouseState::Move)
     , mouseRelease_("mouseRelease", "Mouse Release", [this](Event* e) { eventMouseRelease(e); },
@@ -829,7 +829,11 @@ void BrushVolumeSliceGL::updateMaxSliceNumber() {
 void BrushVolumeSliceGL::eventShiftSlice(Event* event) {
     auto wheelEvent = static_cast<WheelEvent*>(event);
     int steps = static_cast<int>(wheelEvent->delta().y);
-    shiftSlice(steps);
+    if (steps < 0) {
+        shiftSlice(-3);
+    } else if (steps > 0) {
+        shiftSlice(3);
+    }
     event->markAsUsed();
 }
 

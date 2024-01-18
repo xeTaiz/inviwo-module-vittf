@@ -105,6 +105,7 @@ public:
     virtual NTFProperty* clone() const override;
     virtual Property& setIdentifier(const std::string_view identifier) override;
     virtual void deserialize(Deserializer&) override;
+    virtual CompositeProperty& setCollapsed(bool) override;
 
     void addAnnotation(const size3_t coord, const size3_t volDims);
     void removeAnnotation(const size3_t coord, const float distanceThreshold = 1e-4f);
