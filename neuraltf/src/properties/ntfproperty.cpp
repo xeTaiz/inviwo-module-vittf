@@ -211,7 +211,9 @@ void NTFProperty::setAnnotationCount(const size_t annotationCount) {
 
 void NTFProperty::setAnnotations(const std::vector<size3_t>& annotations){
     annotatedVoxels_.clear();
-    std::copy(annotations.begin(), annotations.end(), annotatedVoxels_.begin());
+    for (const size3_t a : annotations){
+        annotatedVoxels_.push_back(a);
+    }
     setAnnotationCount(annotatedVoxels_.size());
 }
 

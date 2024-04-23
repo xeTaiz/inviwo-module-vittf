@@ -1,0 +1,1558 @@
+<?xml version="1.0" ?>
+<InviwoWorkspace version="2">
+    <InviwoSetup>
+        <Modules>
+            <Module name="OpenGL" version="0">
+                <Processors>
+                    <Processor content="org.inviwo.CanvasGL" />
+                </Processors>
+            </Module>
+            <Module name="Base" version="5">
+                <Processors>
+                    <Processor content="org.inviwo.CubeProxyGeometry" />
+                    <Processor content="org.inviwo.VolumeSource" />
+                </Processors>
+            </Module>
+            <Module name="BaseGL" version="5">
+                <Processors>
+                    <Processor content="org.inviwo.EntryExitPoints" />
+                    <Processor content="org.inviwo.ImageLayoutGL" />
+                    <Processor content="org.inviwo.ImageMixer" />
+                </Processors>
+            </Module>
+            <Module name="OpenGLQt" version="0">
+                <Processors>
+                    <Processor content="org.inviwo.CanvasWithPropertiesProcessor" />
+                </Processors>
+            </Module>
+            <Module name="NeuralTF" version="0">
+                <Processors>
+                    <Processor content="org.inviwo.DinoSimilarities" />
+                    <Processor content="org.inviwo.BrushVolumeSliceGL" />
+                    <Processor content="org.inviwo.DINOVolumeRenderer" />
+                </Processors>
+            </Module>
+        </Modules>
+    </InviwoSetup>
+    <ProcessorNetwork>
+        <ProcessorNetworkVersion content="19" />
+        <Processors>
+            <Processor type="org.inviwo.BrushVolumeSliceGL" identifier="VolumeSliceViewer4" displayName="Volume Slice Viewer">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceX">
+                        <maxvalue content="512" />
+                        <value content="234" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceY">
+                        <readonly content="1" />
+                        <maxvalue content="512" />
+                        <value content="236" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceZ">
+                        <readonly content="1" />
+                        <maxvalue content="501" />
+                        <value content="275" />
+                    </Property>
+                    <Property type="org.inviwo.IntVec3Property" identifier="sliceXYZ">
+                        <visible content="0" />
+                        <readonly content="1" />
+                        <maxvalue x="512" y="512" z="501" />
+                        <value x="234" y="236" z="275" />
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="planeNormal">
+                        <readonly content="1" />
+                        <value x="-1" y="0" z="0" />
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="planePosition">
+                        <readonly content="1" />
+                        <value x="0.45668298" y="0.46088794" z="0.5497611" />
+                    </Property>
+                    <Property type="org.inviwo.CompositeProperty" identifier="pickGroup">
+                        <Properties>
+                            <Property type="org.inviwo.BoolProperty" identifier="posPicking">
+                                <value content="1" />
+                            </Property>
+                            <Property type="org.inviwo.FloatProperty" identifier="indicatorSize">
+                                <value content="1" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.CompositeProperty" identifier="tfGroup">
+                        <Properties>
+                            <Property type="org.inviwo.TransferFunctionProperty" identifier="transferFunction" />
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="worldPosition_">
+                        <readonly content="1" />
+                        <minvalue x="-192" y="-53" z="-587.1" />
+                        <maxvalue x="202" y="341" z="-86.099976" />
+                        <value x="-12.06691" y="128.58984" z="-311.66965" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-525" y="550" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.CanvasGL" identifier="Canvas5" displayName="Slice X">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.CompositeProperty" identifier="inputSize">
+                        <Properties>
+                            <Property type="org.inviwo.IntSize2Property" identifier="customInputDimensions">
+                                <readonly content="1" />
+                                <value x="400" y="400" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.IntVec2Property" identifier="position">
+                        <value x="282" y="140" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="colorLayer_">
+                        <displayName content="Color Layer ID" />
+                        <semantics semantics="Default" />
+                        <visible content="0" />
+                        <readonly content="0" />
+                        <minConstraint content="2" />
+                        <maxConstraint content="1" />
+                        <minvalue content="0" />
+                        <maxvalue content="0" />
+                        <increment content="1" />
+                        <value content="0" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-525" y="750" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                    <MetaDataItem type="org.inviwo.ProcessorWidgetMetaData" key="org.inviwo.ProcessorWidgetMetaData">
+                        <position x="282" y="140" />
+                        <dimensions x="400" y="400" />
+                        <visibility content="0" />
+                        <fullScreen content="0" />
+                        <onTop content="1" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.DinoSimilarities" identifier="DinoSimilarities" displayName="DinoSimilarities">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.FileProperty" identifier="cahcePathOverride">
+                        <absolutePath content="/run/media/dome/SSD/Data/Volumes/CT-ORG/volume-10.nii_DINOfeats_all128.npy" />
+                        <workspaceRelativePath content="../../../../../../../../run/media/dome/SSD/Data/Volumes/CT-ORG/volume-10.nii_DINOfeats_all128.npy" />
+                        <ivwdataRelativePath content="../../../Data/Volumes/CT-ORG/volume-10.nii_DINOfeats_all128.npy" />
+                        <selectedExtension>
+                            <extension content="*" />
+                            <description content="All Files" />
+                        </selectedExtension>
+                        <acceptMode content="0" />
+                        <fileMode content="0" />
+                    </Property>
+                    <Property type="org.inviwo.FloatProperty" identifier="simScaleFact">
+                        <value content="1" />
+                    </Property>
+                    <Property type="org.inviwo.DirectoryProperty" identifier="saveDir">
+                        <absolutePath content="/run/media/dome/SSD/Repositories/neural-tf-design/final_ctorg_pred" />
+                        <workspaceRelativePath content="../../../../../../../../run/media/dome/SSD/Repositories/neural-tf-design/final_ctorg_pred" />
+                        <ivwdataRelativePath content="../../neural-tf-design/final_ctorg_pred" />
+                        <selectedExtension>
+                            <extension content="*" />
+                            <description content="All Files" />
+                        </selectedExtension>
+                        <acceptMode content="0" />
+                        <fileMode content="4" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-475" y="250" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.CanvasGL" identifier="Canvas2" displayName="Canvas">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.CompositeProperty" identifier="inputSize">
+                        <Properties>
+                            <Property type="org.inviwo.IntSize2Property" identifier="customInputDimensions">
+                                <readonly content="1" />
+                                <value x="600" y="600" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.IntVec2Property" identifier="position">
+                        <value x="392" y="206" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="colorLayer_">
+                        <displayName content="Color Layer ID" />
+                        <semantics semantics="Default" />
+                        <visible content="0" />
+                        <readonly content="0" />
+                        <minConstraint content="2" />
+                        <maxConstraint content="1" />
+                        <minvalue content="0" />
+                        <maxvalue content="0" />
+                        <increment content="1" />
+                        <value content="0" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-225" y="425" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                    <MetaDataItem type="org.inviwo.ProcessorWidgetMetaData" key="org.inviwo.ProcessorWidgetMetaData">
+                        <position x="392" y="206" />
+                        <dimensions x="600" y="600" />
+                        <visibility content="0" />
+                        <fullScreen content="0" />
+                        <onTop content="1" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.ImageMixer" identifier="ImageMixer3" displayName="Image Mixer">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.OptionPropertyInt" identifier="blendMode">
+                        <selectedIdentifier content="over" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-525" y="675" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.CanvasGL" identifier="Canvas4" displayName="Slice Y">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.CompositeProperty" identifier="inputSize">
+                        <Properties>
+                            <Property type="org.inviwo.IntSize2Property" identifier="customInputDimensions">
+                                <readonly content="1" />
+                                <value x="400" y="400" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.IntVec2Property" identifier="position">
+                        <value x="283" y="567" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="colorLayer_">
+                        <displayName content="Color Layer ID" />
+                        <semantics semantics="Default" />
+                        <visible content="0" />
+                        <readonly content="0" />
+                        <minConstraint content="2" />
+                        <maxConstraint content="1" />
+                        <minvalue content="0" />
+                        <maxvalue content="0" />
+                        <increment content="1" />
+                        <value content="0" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-350" y="750" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                    <MetaDataItem type="org.inviwo.ProcessorWidgetMetaData" key="org.inviwo.ProcessorWidgetMetaData">
+                        <position x="283" y="567" />
+                        <dimensions x="400" y="400" />
+                        <visibility content="0" />
+                        <fullScreen content="0" />
+                        <onTop content="1" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.BrushVolumeSliceGL" identifier="VolumeSliceViewer7" displayName="Volume Slice Viewer">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceX">
+                        <maxvalue content="512" />
+                        <value content="234" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceY">
+                        <readonly content="1" />
+                        <maxvalue content="512" />
+                        <value content="236" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceZ">
+                        <readonly content="1" />
+                        <maxvalue content="501" />
+                        <value content="275" />
+                    </Property>
+                    <Property type="org.inviwo.IntVec3Property" identifier="sliceXYZ">
+                        <visible content="0" />
+                        <readonly content="1" />
+                        <maxvalue x="512" y="512" z="501" />
+                        <value x="234" y="236" z="275" />
+                    </Property>
+                    <Property type="org.inviwo.BoolProperty" identifier="updateSims">
+                        <visible content="0" />
+                        <readonly content="1" />
+                        <value content="1" />
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="planeNormal">
+                        <readonly content="1" />
+                        <value x="-1" y="0" z="0" />
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="planePosition">
+                        <readonly content="1" />
+                        <value x="0.45668298" y="0.46088794" z="0.5497611" />
+                    </Property>
+                    <Property type="org.inviwo.CompositeProperty" identifier="pickGroup">
+                        <Properties>
+                            <Property type="org.inviwo.BoolProperty" identifier="showIndicator">
+                                <readonly content="1" />
+                                <value content="0" />
+                            </Property>
+                            <Property type="org.inviwo.FloatProperty" identifier="indicatorSize">
+                                <value content="1" />
+                            </Property>
+                            <Property type="org.inviwo.BoolProperty" identifier="drawAnnotations">
+                                <value content="1" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.CompositeProperty" identifier="tfGroup">
+                        <Properties>
+                            <Property type="org.inviwo.TransferFunctionProperty" identifier="transferFunction">
+                                <TransferFunction>
+                                    <maskMin content="0" />
+                                    <maskMax content="1" />
+                                    <type content="0" />
+                                    <Points>
+                                        <Point>
+                                            <pos content="0.099" />
+                                            <rgba x="0" y="0" z="0" w="0" />
+                                        </Point>
+                                        <Point>
+                                            <pos content="0.1" />
+                                            <rgba x="0.827" y="0.3" z="0.3" w="0.1" />
+                                        </Point>
+                                        <Point>
+                                            <pos content="0.3759000301361084" />
+                                            <rgba x="0.3" y="0.8" z="0.3" w="0.3" />
+                                        </Point>
+                                        <Point>
+                                            <pos content="0.37790000438690186" />
+                                            <rgba x="0.447" y="0.525" z="0.827" w="0.8" />
+                                        </Point>
+                                        <Point>
+                                            <pos content="1" />
+                                            <rgba x="0.447" y="0.525" z="0.827" w="0.2" />
+                                        </Point>
+                                    </Points>
+                                </TransferFunction>
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="worldPosition_">
+                        <readonly content="1" />
+                        <minvalue x="-192" y="-53" z="-587.1" />
+                        <maxvalue x="202" y="341" z="-86.099976" />
+                        <value x="-12.06691" y="128.58984" z="-311.66965" />
+                    </Property>
+                    <Property type="org.inviwo.BoolProperty" identifier="handleEvents">
+                        <value content="0" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-500" y="600" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.BrushVolumeSliceGL" identifier="VolumeSliceViewer" displayName="Volume Slice Viewer">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.OptionPropertyInt" identifier="sliceAxis">
+                        <selectedIdentifier content="y" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceX">
+                        <readonly content="1" />
+                        <maxvalue content="512" />
+                        <value content="234" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceY">
+                        <maxvalue content="512" />
+                        <value content="236" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceZ">
+                        <readonly content="1" />
+                        <maxvalue content="501" />
+                        <value content="275" />
+                    </Property>
+                    <Property type="org.inviwo.IntVec3Property" identifier="sliceXYZ">
+                        <visible content="0" />
+                        <readonly content="1" />
+                        <maxvalue x="512" y="512" z="501" />
+                        <value x="234" y="236" z="275" />
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="planeNormal">
+                        <readonly content="1" />
+                        <value x="0" y="-1" z="0" />
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="planePosition">
+                        <readonly content="1" />
+                        <value x="0.45668298" y="0.46088794" z="0.5497611" />
+                    </Property>
+                    <Property type="org.inviwo.CompositeProperty" identifier="pickGroup">
+                        <Properties>
+                            <Property type="org.inviwo.BoolProperty" identifier="posPicking">
+                                <value content="1" />
+                            </Property>
+                            <Property type="org.inviwo.FloatProperty" identifier="indicatorSize">
+                                <value content="1" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.CompositeProperty" identifier="tfGroup">
+                        <Properties>
+                            <Property type="org.inviwo.TransferFunctionProperty" identifier="transferFunction" />
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="worldPosition_">
+                        <readonly content="1" />
+                        <minvalue x="-192" y="-53" z="-587.1" />
+                        <maxvalue x="202" y="341" z="-86.099976" />
+                        <value x="-12.06691" y="128.58984" z="-311.66965" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-350" y="550" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.VolumeSource" identifier="VolumeSource" displayName="Volume Source">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.FileProperty" identifier="filename">
+                        <absolutePath content="/run/media/dome/SSD/Data/Volumes/CT-ORG/volume-10.nii.gz" />
+                        <workspaceRelativePath content="../../../../../../../../run/media/dome/SSD/Data/Volumes/CT-ORG/volume-10.nii.gz" />
+                        <ivwdataRelativePath content="../../../Data/Volumes/CT-ORG/volume-10.nii.gz" />
+                        <selectedExtension>
+                            <extension content="*" />
+                            <description content="All Files" />
+                        </selectedExtension>
+                        <acceptMode content="0" />
+                        <fileMode content="0" />
+                    </Property>
+                    <Property type="org.inviwo.OptionPropertyFileExtension" identifier="reader">
+                        <selectedIdentifier content="NIfTI-1 file format (*.nii.gz)" />
+                    </Property>
+                    <Property type="org.inviwo.VolumeInformationProperty" identifier="Information">
+                        <Properties>
+                            <Property type="org.inviwo.DoubleMinMaxProperty" identifier="dataRange">
+                                <range x="-1.7976931e+308" y="1.7976931e+308" />
+                            </Property>
+                            <Property type="org.inviwo.DoubleMinMaxProperty" identifier="valueRange">
+                                <range x="-1.7976931e+308" y="1.7976931e+308" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.SequenceTimerProperty" identifier="Sequence">
+                        <visible content="0" />
+                        <Properties>
+                            <Property type="org.inviwo.Size_tProperty" identifier="selectedSequenceIndex">
+                                <displayName content="Sequence Index" />
+                                <semantics semantics="Default" />
+                                <visible content="0" />
+                                <readonly content="0" />
+                                <minConstraint content="0" />
+                                <maxConstraint content="0" />
+                                <minvalue content="1" />
+                                <maxvalue content="1" />
+                                <increment content="1" />
+                                <value content="1" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-225" y="125" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.ImageLayoutGL" identifier="ImageLayout" displayName="Image Layout">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.OptionPropertyEnumInt" identifier="layout">
+                        <selectedIdentifier content="threeRightOneLeftSplit" />
+                    </Property>
+                    <Property type="org.inviwo.FloatProperty" identifier="vertical3Left1RightSplitter">
+                        <value content="0.3" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="75" y="400" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.CanvasGL" identifier="Canvas3" displayName="Slice Z">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.CompositeProperty" identifier="inputSize">
+                        <Properties>
+                            <Property type="org.inviwo.IntSize2Property" identifier="customInputDimensions">
+                                <readonly content="1" />
+                                <value x="400" y="400" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.IntVec2Property" identifier="position">
+                        <value x="284" y="993" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="colorLayer_">
+                        <displayName content="Color Layer ID" />
+                        <semantics semantics="Default" />
+                        <visible content="0" />
+                        <readonly content="0" />
+                        <minConstraint content="2" />
+                        <maxConstraint content="1" />
+                        <minvalue content="0" />
+                        <maxvalue content="0" />
+                        <increment content="1" />
+                        <value content="0" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-175" y="750" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                    <MetaDataItem type="org.inviwo.ProcessorWidgetMetaData" key="org.inviwo.ProcessorWidgetMetaData">
+                        <position x="284" y="993" />
+                        <dimensions x="400" y="400" />
+                        <visibility content="0" />
+                        <fullScreen content="0" />
+                        <onTop content="1" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.ImageMixer" identifier="ImageMixer2" displayName="Image Mixer">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.OptionPropertyInt" identifier="blendMode">
+                        <selectedIdentifier content="over" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-350" y="675" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.BrushVolumeSliceGL" identifier="VolumeSliceViewer6" displayName="Volume Slice Viewer">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.OptionPropertyInt" identifier="sliceAxis">
+                        <selectedIdentifier content="y" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceX">
+                        <readonly content="1" />
+                        <maxvalue content="512" />
+                        <value content="234" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceY">
+                        <maxvalue content="512" />
+                        <value content="236" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceZ">
+                        <readonly content="1" />
+                        <maxvalue content="501" />
+                        <value content="275" />
+                    </Property>
+                    <Property type="org.inviwo.IntVec3Property" identifier="sliceXYZ">
+                        <visible content="0" />
+                        <readonly content="1" />
+                        <maxvalue x="512" y="512" z="501" />
+                        <value x="234" y="236" z="275" />
+                    </Property>
+                    <Property type="org.inviwo.BoolProperty" identifier="updateSims">
+                        <visible content="0" />
+                        <readonly content="1" />
+                        <value content="1" />
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="planeNormal">
+                        <readonly content="1" />
+                        <value x="0" y="-1" z="0" />
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="planePosition">
+                        <readonly content="1" />
+                        <value x="0.45668298" y="0.46088794" z="0.5497611" />
+                    </Property>
+                    <Property type="org.inviwo.CompositeProperty" identifier="pickGroup">
+                        <Properties>
+                            <Property type="org.inviwo.FloatProperty" identifier="indicatorSize">
+                                <value content="1" />
+                            </Property>
+                            <Property type="org.inviwo.BoolProperty" identifier="drawAnnotations">
+                                <value content="1" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.CompositeProperty" identifier="tfGroup">
+                        <Properties>
+                            <Property type="org.inviwo.TransferFunctionProperty" identifier="transferFunction">
+                                <TransferFunction>
+                                    <maskMin content="0" />
+                                    <maskMax content="1" />
+                                    <type content="0" />
+                                    <Points>
+                                        <Point>
+                                            <pos content="0.099" />
+                                            <rgba x="0" y="0" z="0" w="0" />
+                                        </Point>
+                                        <Point>
+                                            <pos content="0.1" />
+                                            <rgba x="0.827" y="0.3" z="0.3" w="0.1" />
+                                        </Point>
+                                        <Point>
+                                            <pos content="0.3759000301361084" />
+                                            <rgba x="0.3" y="0.8" z="0.3" w="0.3" />
+                                        </Point>
+                                        <Point>
+                                            <pos content="0.37790000438690186" />
+                                            <rgba x="0.447" y="0.525" z="0.827" w="0.8" />
+                                        </Point>
+                                        <Point>
+                                            <pos content="1" />
+                                            <rgba x="0.447" y="0.525" z="0.827" w="0.2" />
+                                        </Point>
+                                    </Points>
+                                </TransferFunction>
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="worldPosition_">
+                        <readonly content="1" />
+                        <minvalue x="-192" y="-53" z="-587.1" />
+                        <maxvalue x="202" y="341" z="-86.099976" />
+                        <value x="-12.06691" y="128.58984" z="-311.66965" />
+                    </Property>
+                    <Property type="org.inviwo.BoolProperty" identifier="handleEvents">
+                        <value content="0" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-325" y="600" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.BrushVolumeSliceGL" identifier="VolumeSliceViewer2" displayName="Volume Slice Viewer">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.OptionPropertyInt" identifier="sliceAxis">
+                        <selectedIdentifier content="z" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceX">
+                        <readonly content="1" />
+                        <maxvalue content="512" />
+                        <value content="234" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceY">
+                        <readonly content="1" />
+                        <maxvalue content="512" />
+                        <value content="236" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceZ">
+                        <maxvalue content="501" />
+                        <value content="275" />
+                    </Property>
+                    <Property type="org.inviwo.IntVec3Property" identifier="sliceXYZ">
+                        <visible content="0" />
+                        <readonly content="1" />
+                        <maxvalue x="512" y="512" z="501" />
+                        <value x="234" y="236" z="275" />
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="planeNormal">
+                        <readonly content="1" />
+                        <value x="0" y="0" z="-1" />
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="planePosition">
+                        <readonly content="1" />
+                        <value x="0.45668298" y="0.46088794" z="0.5497611" />
+                    </Property>
+                    <Property type="org.inviwo.CompositeProperty" identifier="trafoGroup">
+                        <Properties>
+                            <Property type="org.inviwo.BoolProperty" identifier="flipHorizontal">
+                                <value content="1" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.CompositeProperty" identifier="pickGroup">
+                        <Properties>
+                            <Property type="org.inviwo.BoolProperty" identifier="posPicking">
+                                <value content="1" />
+                            </Property>
+                            <Property type="org.inviwo.FloatProperty" identifier="indicatorSize">
+                                <value content="1" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.CompositeProperty" identifier="tfGroup">
+                        <Properties>
+                            <Property type="org.inviwo.TransferFunctionProperty" identifier="transferFunction" />
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="worldPosition_">
+                        <readonly content="1" />
+                        <minvalue x="-192" y="-53" z="-587.1" />
+                        <maxvalue x="202" y="341" z="-86.099976" />
+                        <value x="-12.06691" y="128.58984" z="-311.66965" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-175" y="550" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.CanvasWithPropertiesProcessor" identifier="CanvasWithProperties" displayName="Neural Transfer Function">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.IntSize2Property" identifier="dimensions">
+                        <value x="2558" y="1420" />
+                    </Property>
+                    <Property type="org.inviwo.IntVec2Property" identifier="position">
+                        <value x="2" y="24" />
+                    </Property>
+                    <Property type="org.inviwo.Size_tProperty" identifier="layerIndex">
+                        <displayName content="Color Layer ID" />
+                        <semantics semantics="Default" />
+                        <visible content="1" />
+                        <readonly content="0" />
+                        <minConstraint content="0" />
+                        <maxConstraint content="0" />
+                        <minvalue content="0" />
+                        <maxvalue content="0" />
+                        <increment content="1" />
+                        <value content="0" />
+                    </Property>
+                    <Property type="org.inviwo.StringProperty" identifier="paths">
+                        <value content="DINOVolumeRenderer.tfs" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="75" y="475" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                    <MetaDataItem type="org.inviwo.ProcessorWidgetMetaData" key="org.inviwo.ProcessorWidgetMetaData">
+                        <position x="2" y="24" />
+                        <dimensions x="2558" y="1420" />
+                        <visibility content="1" />
+                        <fullScreen content="0" />
+                        <onTop content="1" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.BrushVolumeSliceGL" identifier="VolumeSliceViewer5" displayName="Volume Slice Viewer">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.OptionPropertyInt" identifier="sliceAxis">
+                        <selectedIdentifier content="z" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceX">
+                        <readonly content="1" />
+                        <maxvalue content="512" />
+                        <value content="234" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceY">
+                        <readonly content="1" />
+                        <maxvalue content="512" />
+                        <value content="236" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="sliceZ">
+                        <maxvalue content="501" />
+                        <value content="275" />
+                    </Property>
+                    <Property type="org.inviwo.IntVec3Property" identifier="sliceXYZ">
+                        <visible content="0" />
+                        <readonly content="1" />
+                        <maxvalue x="512" y="512" z="501" />
+                        <value x="234" y="236" z="275" />
+                    </Property>
+                    <Property type="org.inviwo.BoolProperty" identifier="updateSims">
+                        <visible content="0" />
+                        <readonly content="1" />
+                        <value content="1" />
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="planeNormal">
+                        <readonly content="1" />
+                        <value x="0" y="0" z="-1" />
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="planePosition">
+                        <readonly content="1" />
+                        <value x="0.45668298" y="0.46088794" z="0.5497611" />
+                    </Property>
+                    <Property type="org.inviwo.CompositeProperty" identifier="trafoGroup">
+                        <Properties>
+                            <Property type="org.inviwo.BoolProperty" identifier="flipHorizontal">
+                                <value content="1" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.CompositeProperty" identifier="pickGroup">
+                        <Properties>
+                            <Property type="org.inviwo.FloatProperty" identifier="indicatorSize">
+                                <value content="1" />
+                            </Property>
+                            <Property type="org.inviwo.BoolProperty" identifier="drawAnnotations">
+                                <value content="1" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.CompositeProperty" identifier="tfGroup">
+                        <Properties>
+                            <Property type="org.inviwo.TransferFunctionProperty" identifier="transferFunction">
+                                <TransferFunction>
+                                    <maskMin content="0" />
+                                    <maskMax content="1" />
+                                    <type content="0" />
+                                    <Points>
+                                        <Point>
+                                            <pos content="0.099" />
+                                            <rgba x="0" y="0" z="0" w="0" />
+                                        </Point>
+                                        <Point>
+                                            <pos content="0.1" />
+                                            <rgba x="0.827" y="0.3" z="0.3" w="0.1" />
+                                        </Point>
+                                        <Point>
+                                            <pos content="0.3759000301361084" />
+                                            <rgba x="0.3" y="0.8" z="0.3" w="0.3" />
+                                        </Point>
+                                        <Point>
+                                            <pos content="0.37790000438690186" />
+                                            <rgba x="0.447" y="0.525" z="0.827" w="0.8" />
+                                        </Point>
+                                        <Point>
+                                            <pos content="1" />
+                                            <rgba x="0.447" y="0.525" z="0.827" w="0.2" />
+                                        </Point>
+                                    </Points>
+                                </TransferFunction>
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.FloatVec3Property" identifier="worldPosition_">
+                        <readonly content="1" />
+                        <minvalue x="-192" y="-53" z="-587.1" />
+                        <maxvalue x="202" y="341" z="-86.099976" />
+                        <value x="-12.06691" y="128.58984" z="-311.66965" />
+                    </Property>
+                    <Property type="org.inviwo.BoolProperty" identifier="handleEvents">
+                        <value content="0" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-150" y="600" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.ImageMixer" identifier="ImageMixer" displayName="Image Mixer">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.OptionPropertyInt" identifier="blendMode">
+                        <selectedIdentifier content="over" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-175" y="675" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.DINOVolumeRenderer" identifier="DINOVolumeRenderer" displayName="DINOVolume Renderer">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.TransferFunctionProperty" identifier="rawTransferFunction">
+                        <MetaDataMap>
+                            <MetaDataItem type="org.inviwo.IntMetaData" key="PropertyEditorWidgetDockStatus">
+                                <MetaData content="0" />
+                            </MetaDataItem>
+                            <MetaDataItem type="org.inviwo.BoolMetaData" key="PropertyEditorWidgetFloating">
+                                <MetaData content="1" />
+                            </MetaDataItem>
+                            <MetaDataItem type="org.inviwo.IntVec2MetaData" key="PropertyEditorWidgetPosition">
+                                <MetaData x="5309" y="1076" />
+                            </MetaDataItem>
+                            <MetaDataItem type="org.inviwo.IntVec2MetaData" key="PropertyEditorWidgetSize">
+                                <MetaData x="584" y="375" />
+                            </MetaDataItem>
+                            <MetaDataItem type="org.inviwo.BoolMetaData" key="PropertyEditorWidgetSticky">
+                                <MetaData content="1" />
+                            </MetaDataItem>
+                            <MetaDataItem type="org.inviwo.BoolMetaData" key="PropertyEditorWidgetVisible">
+                                <MetaData content="0" />
+                            </MetaDataItem>
+                        </MetaDataMap>
+                        <TransferFunction>
+                            <maskMin content="0" />
+                            <maskMax content="1" />
+                            <type content="0" />
+                            <Points>
+                                <Point>
+                                    <pos content="0" />
+                                    <rgba x="0" y="0" z="0" w="0" />
+                                </Point>
+                                <Point>
+                                    <pos content="1" />
+                                    <rgba x="1" y="1" z="1" w="0" />
+                                </Point>
+                                <Point>
+                                    <pos content="0.33773087071240104" />
+                                    <rgba x="0" y="1" z="0" w="0" />
+                                </Point>
+                                <Point>
+                                    <pos content="0.38916659795514497" />
+                                    <rgba x="0" y="1" z="0" w="0" />
+                                </Point>
+                                <Point>
+                                    <pos content="0.63194158146438" />
+                                    <rgba x="0" y="1" z="0" w="0" />
+                                </Point>
+                                <Point>
+                                    <pos content="0.5620052770448548" />
+                                    <rgba x="0.001761679" y="1" z="0.001761679" w="0" />
+                                </Point>
+                            </Points>
+                        </TransferFunction>
+                        <showHistogram_ content="3" />
+                    </Property>
+                    <Property type="org.inviwo.ListProperty" identifier="tfs">
+                        <maxNumberOfElements content="0" />
+                        <displayName content="Classes" />
+                        <semantics semantics="Default" />
+                        <visible content="1" />
+                        <readonly content="0" />
+                        <MetaDataMap>
+                            <MetaDataItem type="org.inviwo.StringStringStdUnorderedMapMetaData" key="SavedState" />
+                        </MetaDataMap>
+                        <OwnedPropertyIdentifiers>
+                            <PropertyIdentifier content="ntf0" />
+                            <PropertyIdentifier content="ntf1" />
+                            <PropertyIdentifier content="ntf2" />
+                            <PropertyIdentifier content="ntf3" />
+                            <PropertyIdentifier content="ntf4" />
+                        </OwnedPropertyIdentifiers>
+                        <Properties>
+                            <Property type="org.inviwo.NTFProperty" identifier="ntf0">
+                                <displayName content="Liver" />
+                                <semantics semantics="Default" />
+                                <visible content="1" />
+                                <readonly content="0" />
+                                <Properties>
+                                    <Property type="org.inviwo.FloatVec4Property" identifier="color">
+                                        <semantics semantics="Color" />
+                                        <value x="0.07058824" y="0.07058824" z="0.8352941" w="1" />
+                                    </Property>
+                                    <Property type="org.inviwo.FloatProperty" identifier="isoValue">
+                                        <value content="0.38031" />
+                                    </Property>
+                                    <Property type="org.inviwo.FloatProperty" identifier="proximity">
+                                        <value content="0.2115" />
+                                    </Property>
+                                    <Property type="org.inviwo.BoolCompositeProperty" identifier="enableBLS">
+                                        <Properties>
+                                            <Property type="org.inviwo.BoolProperty" identifier="checked">
+                                                <value content="1" />
+                                            </Property>
+                                        </Properties>
+                                        <collapsed content="1" />
+                                    </Property>
+                                </Properties>
+                                <collapsed content="1" />
+                            </Property>
+                            <Property type="org.inviwo.NTFProperty" identifier="ntf1">
+                                <displayName content="Bladder" />
+                                <semantics semantics="Default" />
+                                <visible content="1" />
+                                <readonly content="0" />
+                                <Properties>
+                                    <Property type="org.inviwo.FloatVec4Property" identifier="color">
+                                        <semantics semantics="Color" />
+                                        <value x="0.58431375" y="0.8156863" z="0.078431375" w="1" />
+                                    </Property>
+                                    <Property type="org.inviwo.FloatProperty" identifier="isoValue">
+                                        <value content="0.4174" />
+                                    </Property>
+                                    <Property type="org.inviwo.FloatProperty" identifier="proximity">
+                                        <value content="1" />
+                                    </Property>
+                                    <Property type="org.inviwo.BoolCompositeProperty" identifier="enableBLS">
+                                        <Properties>
+                                            <Property type="org.inviwo.BoolProperty" identifier="checked">
+                                                <value content="1" />
+                                            </Property>
+                                        </Properties>
+                                        <collapsed content="1" />
+                                    </Property>
+                                </Properties>
+                                <collapsed content="1" />
+                            </Property>
+                            <Property type="org.inviwo.NTFProperty" identifier="ntf2">
+                                <displayName content="Lungs" />
+                                <semantics semantics="Default" />
+                                <visible content="1" />
+                                <readonly content="0" />
+                                <Properties>
+                                    <Property type="org.inviwo.FloatVec4Property" identifier="color">
+                                        <semantics semantics="Color" />
+                                        <value x="0.77254903" y="0.101960786" z="0.13725491" w="1" />
+                                    </Property>
+                                    <Property type="org.inviwo.BoolCompositeProperty" identifier="enableBLS">
+                                        <Properties>
+                                            <Property type="org.inviwo.BoolProperty" identifier="checked">
+                                                <value content="1" />
+                                            </Property>
+                                        </Properties>
+                                        <collapsed content="1" />
+                                    </Property>
+                                </Properties>
+                                <collapsed content="1" />
+                            </Property>
+                            <Property type="org.inviwo.NTFProperty" identifier="ntf3">
+                                <displayName content="Kidneys" />
+                                <semantics semantics="Default" />
+                                <visible content="1" />
+                                <readonly content="0" />
+                                <Properties>
+                                    <Property type="org.inviwo.FloatVec4Property" identifier="color">
+                                        <semantics semantics="Color" />
+                                        <value x="0.12941177" y="0.8156863" z="0.09411765" w="1" />
+                                    </Property>
+                                    <Property type="org.inviwo.FloatProperty" identifier="isoValue">
+                                        <value content="0.60885" />
+                                    </Property>
+                                    <Property type="org.inviwo.FloatProperty" identifier="proximity">
+                                        <value content="0.7692" />
+                                    </Property>
+                                    <Property type="org.inviwo.BoolCompositeProperty" identifier="enableBLS">
+                                        <Properties>
+                                            <Property type="org.inviwo.BoolProperty" identifier="checked">
+                                                <value content="1" />
+                                            </Property>
+                                        </Properties>
+                                        <collapsed content="1" />
+                                    </Property>
+                                </Properties>
+                                <collapsed content="1" />
+                            </Property>
+                            <Property type="org.inviwo.NTFProperty" identifier="ntf4">
+                                <displayName content="Bones" />
+                                <semantics semantics="Default" />
+                                <visible content="1" />
+                                <readonly content="0" />
+                                <Properties>
+                                    <Property type="org.inviwo.FloatProperty" identifier="isoValue">
+                                        <value content="0.37690002" />
+                                    </Property>
+                                    <Property type="org.inviwo.BoolCompositeProperty" identifier="enableBLS">
+                                        <Properties>
+                                            <Property type="org.inviwo.BoolProperty" identifier="checked">
+                                                <value content="1" />
+                                            </Property>
+                                        </Properties>
+                                        <collapsed content="1" />
+                                    </Property>
+                                </Properties>
+                                <collapsed content="0" />
+                            </Property>
+                        </Properties>
+                        <collapsed content="0" />
+                    </Property>
+                    <Property type="org.inviwo.ListProperty" identifier="annotationButtons">
+                        <maxNumberOfElements content="0" />
+                        <MetaDataMap>
+                            <MetaDataItem type="org.inviwo.StringStringStdUnorderedMapMetaData" key="SavedState" />
+                        </MetaDataMap>
+                        <OwnedPropertyIdentifiers>
+                            <PropertyIdentifier content="ntf0-addCoord" />
+                            <PropertyIdentifier content="ntf1-addCoord" />
+                            <PropertyIdentifier content="ntf2-addCoord" />
+                            <PropertyIdentifier content="ntf3-addCoord" />
+                            <PropertyIdentifier content="ntf4-addCoord" />
+                        </OwnedPropertyIdentifiers>
+                        <Properties>
+                            <Property type="org.inviwo.ButtonProperty" identifier="ntf0-addCoord">
+                                <displayName content="Add to Liver" />
+                                <semantics semantics="Default" />
+                                <visible content="1" />
+                                <readonly content="0" />
+                            </Property>
+                            <Property type="org.inviwo.ButtonProperty" identifier="ntf1-addCoord">
+                                <displayName content="Add to Bladder" />
+                                <semantics semantics="Default" />
+                                <visible content="1" />
+                                <readonly content="0" />
+                            </Property>
+                            <Property type="org.inviwo.ButtonProperty" identifier="ntf2-addCoord">
+                                <displayName content="Add to Lungs" />
+                                <semantics semantics="Default" />
+                                <visible content="1" />
+                                <readonly content="0" />
+                            </Property>
+                            <Property type="org.inviwo.ButtonProperty" identifier="ntf3-addCoord">
+                                <displayName content="Add to Kidneys" />
+                                <semantics semantics="Default" />
+                                <visible content="1" />
+                                <readonly content="0" />
+                            </Property>
+                            <Property type="org.inviwo.ButtonProperty" identifier="ntf4-addCoord">
+                                <displayName content="Add to Bones" />
+                                <semantics semantics="Default" />
+                                <visible content="1" />
+                                <readonly content="0" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.BoolProperty" identifier="useShadowRays">
+                        <MetaDataMap>
+                            <MetaDataItem type="org.inviwo.StringStringStdUnorderedMapMetaData" key="SavedState" />
+                        </MetaDataMap>
+                        <value content="1" />
+                    </Property>
+                    <Property type="org.inviwo.OptionPropertySize_t" identifier="selectedClass">
+                        <options>
+                            <option>
+                                <id content="ntf0" />
+                                <name content="ntf0" />
+                                <value content="0" />
+                            </option>
+                            <option>
+                                <id content="ntf1" />
+                                <name content="ntf1" />
+                                <value content="1" />
+                            </option>
+                            <option>
+                                <id content="ntf2" />
+                                <name content="ntf2" />
+                                <value content="2" />
+                            </option>
+                            <option>
+                                <id content="ntf3" />
+                                <name content="ntf3" />
+                                <value content="3" />
+                            </option>
+                            <option>
+                                <id content="ntf4" />
+                                <name content="ntf4" />
+                                <value content="4" />
+                            </option>
+                        </options>
+                        <selectedIdentifier content="ntf4" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="currentVoxelX">
+                        <visible content="0" />
+                        <minvalue content="1" />
+                        <maxvalue content="512" />
+                        <value content="319" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="currentVoxelY">
+                        <visible content="0" />
+                        <minvalue content="1" />
+                        <maxvalue content="512" />
+                        <value content="257" />
+                    </Property>
+                    <Property type="org.inviwo.IntProperty" identifier="currentVoxelZ">
+                        <visible content="0" />
+                        <minvalue content="1" />
+                        <maxvalue content="501" />
+                        <value content="290" />
+                    </Property>
+                    <Property type="org.inviwo.IntVec3Property" identifier="currentVoxel">
+                        <visible content="0" />
+                        <readonly content="1" />
+                        <maxvalue x="512" y="512" z="501" />
+                        <value x="234" y="236" z="275" />
+                    </Property>
+                    <Property type="org.inviwo.TransferFunctionProperty" identifier="currentSimilarityTF">
+                        <visible content="0" />
+                        <readonly content="1" />
+                        <TransferFunction>
+                            <maskMin content="0" />
+                            <maskMax content="1" />
+                            <type content="0" />
+                            <Points>
+                                <Point>
+                                    <pos content="0.099" />
+                                    <rgba x="0" y="0" z="0" w="0" />
+                                </Point>
+                                <Point>
+                                    <pos content="0.1" />
+                                    <rgba x="0.827" y="0.3" z="0.3" w="0.1" />
+                                </Point>
+                                <Point>
+                                    <pos content="0.3759000301361084" />
+                                    <rgba x="0.3" y="0.8" z="0.3" w="0.3" />
+                                </Point>
+                                <Point>
+                                    <pos content="0.37790000438690186" />
+                                    <rgba x="0.447" y="0.525" z="0.827" w="0.8" />
+                                </Point>
+                                <Point>
+                                    <pos content="1" />
+                                    <rgba x="0.447" y="0.525" z="0.827" w="0.2" />
+                                </Point>
+                            </Points>
+                        </TransferFunction>
+                    </Property>
+                    <Property type="org.inviwo.SimpleRaycastingProperty" identifier="raycaster">
+                        <Properties>
+                            <Property type="org.inviwo.FloatProperty" identifier="isoValue">
+                                <value content="0.1779" />
+                            </Property>
+                        </Properties>
+                        <collapsed content="1" />
+                    </Property>
+                    <Property type="org.inviwo.CameraProperty" identifier="camera">
+                        <Properties>
+                            <Property type="org.inviwo.FloatVec3RefProperty" identifier="lookFrom">
+                                <minvalue x="-9845" y="-9706" z="-12861.6" />
+                                <maxvalue x="9855" y="9994" z="12188.4" />
+                            </Property>
+                            <Property type="org.inviwo.FloatVec3RefProperty" identifier="lookTo">
+                                <minvalue x="-389" y="-250" z="-837.6" />
+                                <maxvalue x="399" y="538" z="164.40002" />
+                            </Property>
+                            <Property type="org.inviwo.FloatRefProperty" identifier="near">
+                                <maxvalue content="13.312" />
+                            </Property>
+                            <Property type="org.inviwo.FloatRefProperty" identifier="far">
+                                <maxvalue content="133120" />
+                            </Property>
+                        </Properties>
+                        <Camera type="PerspectiveCamera">
+                            <lookFrom x="-49.487343" y="1336.0807" z="109.519585" />
+                            <lookTo x="-6.552887" y="141.59425" z="-331.20523" />
+                            <lookUp x="-0.009420813" y="-0.3064281" z="0.95184773" />
+                            <near content="1.3026" />
+                            <far content="13026" />
+                            <aspectRatio content="1.0464789" />
+                            <fov content="30" />
+                        </Camera>
+                    </Property>
+                    <Property type="org.inviwo.SimpleLightingProperty" identifier="lighting">
+                        <MetaDataMap>
+                            <MetaDataItem type="org.inviwo.StringStringStdUnorderedMapMetaData" key="SavedState" />
+                        </MetaDataMap>
+                        <Properties>
+                            <Property type="org.inviwo.FloatVec3Property" identifier="lightPosition">
+                                <value x="-294.02985" y="378.03836" z="393.47153" />
+                            </Property>
+                            <Property type="org.inviwo.FloatVec3Property" identifier="lightColorAmbient">
+                                <value x="0.38431373" y="0.38431373" z="0.38431373" />
+                            </Property>
+                            <Property type="org.inviwo.FloatVec3Property" identifier="lightColorDiffuse">
+                                <value x="0.7764706" y="0.7764706" z="0.7764706" />
+                            </Property>
+                            <Property type="org.inviwo.FloatVec3Property" identifier="lightColorSpecular">
+                                <value x="0.22352941" y="0.22352941" z="0.22352941" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                    <Property type="org.inviwo.VolumeIndicatorProperty" identifier="positionindicator">
+                        <Properties>
+                            <Property type="org.inviwo.PlaneProperty" identifier="plane1">
+                                <Properties>
+                                    <Property type="org.inviwo.FloatVec3Property" identifier="position">
+                                        <value x="0.45668298" y="0.46088794" z="0.5497611" />
+                                    </Property>
+                                    <Property type="org.inviwo.FloatVec3Property" identifier="normal">
+                                        <value x="-1" y="0" z="0" />
+                                    </Property>
+                                    <Property type="org.inviwo.FloatVec4Property" identifier="color">
+                                        <value x="1" y="0.706" z="0.706" w="0.2" />
+                                    </Property>
+                                </Properties>
+                                <collapsed content="1" />
+                            </Property>
+                            <Property type="org.inviwo.PlaneProperty" identifier="plane2">
+                                <Properties>
+                                    <Property type="org.inviwo.FloatVec3Property" identifier="position">
+                                        <value x="0.45668298" y="0.46088794" z="0.5497611" />
+                                    </Property>
+                                    <Property type="org.inviwo.FloatVec3Property" identifier="normal">
+                                        <value x="0" y="-1" z="0" />
+                                    </Property>
+                                    <Property type="org.inviwo.FloatVec4Property" identifier="color">
+                                        <value x="0.706" y="1" z="0.706" w="0.2" />
+                                    </Property>
+                                </Properties>
+                                <collapsed content="1" />
+                            </Property>
+                            <Property type="org.inviwo.PlaneProperty" identifier="plane3">
+                                <Properties>
+                                    <Property type="org.inviwo.FloatVec3Property" identifier="position">
+                                        <value x="0.45668298" y="0.46088794" z="0.5497611" />
+                                    </Property>
+                                    <Property type="org.inviwo.FloatVec3Property" identifier="normal">
+                                        <value x="0" y="0" z="-1" />
+                                    </Property>
+                                    <Property type="org.inviwo.FloatVec4Property" identifier="color">
+                                        <value x="0.706" y="0.706" z="1" w="0.2" />
+                                    </Property>
+                                </Properties>
+                                <collapsed content="1" />
+                            </Property>
+                        </Properties>
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-200" y="325" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.EntryExitPoints" identifier="EntryExitPoints" displayName="Entry Exit Points">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.CameraProperty" identifier="camera">
+                        <Properties>
+                            <Property type="org.inviwo.FloatRefProperty" identifier="aspectRatio">
+                                <increment content="0.1" />
+                            </Property>
+                            <Property type="org.inviwo.FloatRefProperty" identifier="fov">
+                                <minvalue content="30" />
+                                <maxvalue content="360" />
+                            </Property>
+                        </Properties>
+                        <Camera type="PerspectiveCamera">
+                            <lookFrom x="-49.487343" y="1336.0807" z="109.519585" />
+                            <lookTo x="-6.552887" y="141.59425" z="-331.20523" />
+                            <lookUp x="-0.009420813" y="-0.3064281" z="0.95184773" />
+                            <near content="1.3026" />
+                            <far content="13026" />
+                            <aspectRatio content="1.0464789" />
+                            <fov content="30" />
+                        </Camera>
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-175" y="250" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+            <Processor type="org.inviwo.CubeProxyGeometry" identifier="CubeProxyGeometry" displayName="Cube Proxy Geometry">
+                <PortGroups />
+                <Properties>
+                    <Property type="org.inviwo.IntMinMaxProperty" identifier="clipX">
+                        <displayName content="Clip X Slices" />
+                        <semantics semantics="Default" />
+                        <visible content="1" />
+                        <readonly content="0" />
+                        <range x="0" y="511" />
+                        <increment content="1" />
+                        <minSeparation content="1" />
+                        <value x="0" y="511" />
+                    </Property>
+                    <Property type="org.inviwo.IntMinMaxProperty" identifier="clipY">
+                        <displayName content="Clip Y Slices" />
+                        <semantics semantics="Default" />
+                        <visible content="1" />
+                        <readonly content="0" />
+                        <range x="0" y="511" />
+                        <increment content="1" />
+                        <minSeparation content="1" />
+                        <value x="0" y="511" />
+                    </Property>
+                    <Property type="org.inviwo.IntMinMaxProperty" identifier="clipZ">
+                        <displayName content="Clip Z Slices" />
+                        <semantics semantics="Default" />
+                        <visible content="1" />
+                        <readonly content="0" />
+                        <range x="0" y="500" />
+                        <increment content="1" />
+                        <minSeparation content="1" />
+                        <value x="0" y="500" />
+                    </Property>
+                </Properties>
+                <MetaDataMap>
+                    <MetaDataItem type="org.inviwo.ProcessorMetaData" key="org.inviwo.ProcessorMetaData">
+                        <position x="-175" y="200" />
+                        <visibility content="1" />
+                        <selection content="0" />
+                    </MetaDataItem>
+                </MetaDataMap>
+            </Processor>
+        </Processors>
+        <Connections>
+            <Connection src="VolumeSource.data" dst="CubeProxyGeometry.volume" />
+            <Connection src="CubeProxyGeometry.proxyGeometry" dst="EntryExitPoints.geometry" />
+            <Connection src="VolumeSource.data" dst="DINOVolumeRenderer.volume" />
+            <Connection src="EntryExitPoints.entry" dst="DINOVolumeRenderer.entry" />
+            <Connection src="EntryExitPoints.exit" dst="DINOVolumeRenderer.exit" />
+            <Connection src="DINOVolumeRenderer.outport" dst="Canvas2.inport" />
+            <Connection src="ImageMixer3.outport" dst="Canvas5.inport" />
+            <Connection src="ImageMixer3.outport" dst="ImageLayout.multiinport" />
+            <Connection src="ImageMixer2.outport" dst="ImageLayout.multiinport" />
+            <Connection src="ImageMixer.outport" dst="ImageLayout.multiinport" />
+            <Connection src="ImageMixer2.outport" dst="Canvas4.inport" />
+            <Connection src="ImageMixer.outport" dst="Canvas3.inport" />
+            <Connection src="ImageLayout.outport" dst="CanvasWithProperties.inport" />
+            <Connection src="DINOVolumeRenderer.outport" dst="ImageLayout.multiinport" />
+            <Connection src="DINOVolumeRenderer.simOutport" dst="VolumeSliceViewer7.volume" />
+            <Connection src="VolumeSliceViewer7.outport" dst="ImageMixer3.inport1" />
+            <Connection src="DINOVolumeRenderer.simOutport" dst="VolumeSliceViewer6.volume" />
+            <Connection src="VolumeSliceViewer6.outport" dst="ImageMixer2.inport1" />
+            <Connection src="DINOVolumeRenderer.simOutport" dst="VolumeSliceViewer5.volume" />
+            <Connection src="VolumeSliceViewer5.outport" dst="ImageMixer.inport1" />
+            <Connection src="DINOVolumeRenderer.annotationPort" dst="VolumeSliceViewer7.annotationPort" />
+            <Connection src="DINOVolumeRenderer.annotationPort" dst="VolumeSliceViewer6.annotationPort" />
+            <Connection src="DINOVolumeRenderer.annotationPort" dst="VolumeSliceViewer5.annotationPort" />
+            <Connection src="VolumeSource.data" dst="VolumeSliceViewer4.volume" />
+            <Connection src="VolumeSliceViewer4.outport" dst="ImageMixer3.inport0" />
+            <Connection src="VolumeSource.data" dst="VolumeSliceViewer.volume" />
+            <Connection src="VolumeSliceViewer.outport" dst="ImageMixer2.inport0" />
+            <Connection src="VolumeSource.data" dst="VolumeSliceViewer2.volume" />
+            <Connection src="VolumeSliceViewer2.outport" dst="ImageMixer.inport0" />
+            <Connection src="VolumeSource.data" dst="DinoSimilarities.inport" />
+            <Connection src="DinoSimilarities.ntf0" dst="DINOVolumeRenderer.similarity" />
+            <Connection src="DinoSimilarities.ntf1" dst="DINOVolumeRenderer.similarity" />
+            <Connection src="DinoSimilarities.ntf2" dst="DINOVolumeRenderer.similarity" />
+            <Connection src="DinoSimilarities.ntf3" dst="DINOVolumeRenderer.similarity" />
+            <Connection src="DinoSimilarities.ntf4" dst="DINOVolumeRenderer.similarity" />
+        </Connections>
+        <PropertyLinks>
+            <PropertyLink src="VolumeSliceViewer2.planeNormal" dst="VolumeSliceViewer5.planeNormal" />
+            <PropertyLink src="VolumeSliceViewer2.brushMode" dst="DINOVolumeRenderer.brushMode" />
+            <PropertyLink src="DINOVolumeRenderer.camera" dst="EntryExitPoints.camera" />
+            <PropertyLink src="VolumeSliceViewer.planeNormal" dst="VolumeSliceViewer6.planeNormal" />
+            <PropertyLink src="VolumeSliceViewer2.planeNormal" dst="DINOVolumeRenderer.positionindicator.plane3.normal" />
+            <PropertyLink src="VolumeSliceViewer2.tfGroup" dst="VolumeSliceViewer.tfGroup" />
+            <PropertyLink src="VolumeSliceViewer2.eraseMode" dst="DINOVolumeRenderer.eraseMode" />
+            <PropertyLink src="VolumeSliceViewer4.sliceXYZ" dst="VolumeSliceViewer.sliceXYZ" />
+            <PropertyLink src="VolumeSliceViewer2.planePosition" dst="VolumeSliceViewer7.planePosition" />
+            <PropertyLink src="VolumeSliceViewer6.tfGroup" dst="VolumeSliceViewer5.tfGroup" />
+            <PropertyLink src="VolumeSliceViewer7.sliceXYZ" dst="VolumeSliceViewer6.sliceXYZ" />
+            <PropertyLink src="DINOVolumeRenderer.positionindicator.plane2.normal" dst="VolumeSliceViewer.planeNormal" />
+            <PropertyLink src="VolumeSliceViewer4.tfGroup" dst="VolumeSliceViewer.tfGroup" />
+            <PropertyLink src="DINOVolumeRenderer.positionindicator.plane2.position" dst="VolumeSliceViewer.planePosition" />
+            <PropertyLink src="VolumeSliceViewer2.updateSims" dst="VolumeSliceViewer.updateSims" />
+            <PropertyLink src="VolumeSliceViewer4.brushMode" dst="VolumeSliceViewer.brushMode" />
+            <PropertyLink src="VolumeSliceViewer2.sliceXYZ" dst="DINOVolumeRenderer.currentVoxel" />
+            <PropertyLink src="EntryExitPoints.camera" dst="DINOVolumeRenderer.camera" />
+            <PropertyLink src="DINOVolumeRenderer.currentSimilarityTF" dst="VolumeSliceViewer5.tfGroup.transferFunction" />
+            <PropertyLink src="DINOVolumeRenderer.positionindicator.plane3.position" dst="VolumeSliceViewer2.planePosition" />
+            <PropertyLink src="DINOVolumeRenderer.updateSims" dst="VolumeSliceViewer2.updateSims" />
+            <PropertyLink src="VolumeSliceViewer7.tfGroup" dst="VolumeSliceViewer6.tfGroup" />
+            <PropertyLink src="VolumeSliceViewer.planePosition" dst="DINOVolumeRenderer.positionindicator.plane2.position" />
+            <PropertyLink src="VolumeSliceViewer4.planePosition" dst="VolumeSliceViewer.planePosition" />
+            <PropertyLink src="VolumeSliceViewer4.planeNormal" dst="DINOVolumeRenderer.positionindicator.plane1.normal" />
+            <PropertyLink src="VolumeSliceViewer.brushMode" dst="VolumeSliceViewer4.brushMode" />
+            <PropertyLink src="VolumeSliceViewer.planePosition" dst="VolumeSliceViewer6.planePosition" />
+            <PropertyLink src="VolumeSliceViewer5.planePosition" dst="VolumeSliceViewer6.planePosition" />
+            <PropertyLink src="VolumeSliceViewer5.tfGroup" dst="VolumeSliceViewer6.tfGroup" />
+            <PropertyLink src="VolumeSliceViewer5.sliceXYZ" dst="VolumeSliceViewer6.sliceXYZ" />
+            <PropertyLink src="VolumeSliceViewer.eraseMode" dst="VolumeSliceViewer4.eraseMode" />
+            <PropertyLink src="VolumeSliceViewer6.tfGroup" dst="VolumeSliceViewer7.tfGroup" />
+            <PropertyLink src="VolumeSliceViewer4.planePosition" dst="DINOVolumeRenderer.positionindicator.plane1.position" />
+            <PropertyLink src="VolumeSliceViewer2.eraseMode" dst="VolumeSliceViewer.eraseMode" />
+            <PropertyLink src="DINOVolumeRenderer.positionindicator.plane1.normal" dst="VolumeSliceViewer4.planeNormal" />
+            <PropertyLink src="VolumeSliceViewer.brushMode" dst="VolumeSliceViewer2.brushMode" />
+            <PropertyLink src="VolumeSliceViewer.sliceXYZ" dst="VolumeSliceViewer2.sliceXYZ" />
+            <PropertyLink src="DinoSimilarities.updateSims" dst="DINOVolumeRenderer.updateSims" />
+            <PropertyLink src="VolumeSliceViewer2.brushMode" dst="VolumeSliceViewer.brushMode" />
+            <PropertyLink src="VolumeSliceViewer.tfGroup" dst="VolumeSliceViewer2.tfGroup" />
+            <PropertyLink src="VolumeSliceViewer4.eraseMode" dst="VolumeSliceViewer.eraseMode" />
+            <PropertyLink src="VolumeSliceViewer6.planePosition" dst="VolumeSliceViewer5.planePosition" />
+            <PropertyLink src="VolumeSliceViewer2.sliceXYZ" dst="VolumeSliceViewer.sliceXYZ" />
+            <PropertyLink src="VolumeSliceViewer.tfGroup" dst="VolumeSliceViewer4.tfGroup" />
+            <PropertyLink src="DINOVolumeRenderer.positionindicator.plane1.position" dst="VolumeSliceViewer4.planePosition" />
+            <PropertyLink src="VolumeSliceViewer6.sliceXYZ" dst="VolumeSliceViewer5.sliceXYZ" />
+            <PropertyLink src="VolumeSliceViewer.sliceAxis" dst="VolumeSliceViewer6.sliceAxis" />
+            <PropertyLink src="VolumeSliceViewer6.sliceXYZ" dst="VolumeSliceViewer7.sliceXYZ" />
+            <PropertyLink src="VolumeSliceViewer2.planePosition" dst="DINOVolumeRenderer.positionindicator.plane3.position" />
+            <PropertyLink src="VolumeSliceViewer.updateSims" dst="VolumeSliceViewer2.updateSims" />
+            <PropertyLink src="VolumeSliceViewer6.planePosition" dst="VolumeSliceViewer7.planePosition" />
+            <PropertyLink src="VolumeSliceViewer.planePosition" dst="VolumeSliceViewer2.planePosition" />
+            <PropertyLink src="DINOVolumeRenderer.updateSims" dst="DinoSimilarities.updateSims" />
+            <PropertyLink src="VolumeSliceViewer.updateSims" dst="VolumeSliceViewer4.updateSims" />
+            <PropertyLink src="VolumeSliceViewer.sliceXYZ" dst="VolumeSliceViewer4.sliceXYZ" />
+            <PropertyLink src="VolumeSliceViewer2.planeNormal" dst="VolumeSliceViewer7.planeNormal" />
+            <PropertyLink src="DINOVolumeRenderer.positionindicator.plane3.normal" dst="VolumeSliceViewer2.planeNormal" />
+            <PropertyLink src="VolumeSliceViewer5.tfGroup.transferFunction" dst="DINOVolumeRenderer.currentSimilarityTF" />
+            <PropertyLink src="VolumeSliceViewer.planeNormal" dst="DINOVolumeRenderer.positionindicator.plane2.normal" />
+            <PropertyLink src="VolumeSliceViewer2.planePosition" dst="VolumeSliceViewer5.planePosition" />
+            <PropertyLink src="VolumeSliceViewer4.updateSims" dst="VolumeSliceViewer.updateSims" />
+            <PropertyLink src="VolumeSliceViewer2.planePosition" dst="VolumeSliceViewer.planePosition" />
+            <PropertyLink src="VolumeSliceViewer7.planePosition" dst="VolumeSliceViewer6.planePosition" />
+            <PropertyLink src="VolumeSliceViewer2.updateSims" dst="DINOVolumeRenderer.updateSims" />
+            <PropertyLink src="VolumeSliceViewer.eraseMode" dst="VolumeSliceViewer2.eraseMode" />
+            <PropertyLink src="VolumeSliceViewer.planePosition" dst="VolumeSliceViewer4.planePosition" />
+        </PropertyLinks>
+    </ProcessorNetwork>
+    <PortInspectors />
+    <WorkspaceAnnotations>
+        <Properties>
+            <Property type="org.inviwo.StringProperty" identifier="author">
+                <value content="Inviwo Team" />
+            </Property>
+            <Property type="org.inviwo.StringProperty" identifier="tags">
+                <value content="Example;" />
+            </Property>
+            <Property type="org.inviwo.StringProperty" identifier="categories">
+                <value content="Examples;" />
+            </Property>
+        </Properties>
+        <Network>
+            <name content="Network" />
+            <size x="256" y="256" />
+            <base64 content="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" />
+        </Network>
+    </WorkspaceAnnotations>
+    <AnimationController>
+        <Properties />
+    </AnimationController>
+    <MainAnimationIndex content="0" />
+    <Animations>
+        <Animation>
+            <name content="Animation 1" />
+        </Animation>
+    </Animations>
+</InviwoWorkspace>

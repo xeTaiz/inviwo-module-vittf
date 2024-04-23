@@ -5,6 +5,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import sys
+import time
+import json
 from itertools import count
 from pathlib import Path
 import infer
@@ -15,7 +17,7 @@ import subprocess
 import inspect
 from contextlib import contextmanager
 
-from scipy.ndimage import grey_closing, grey_opening
+from scipy.ndimage import grey_closing, grey_opening, gaussian_filter
 try:
     from cc_torch import connected_components_labeling
     has_cc_torch = True
@@ -164,6 +166,19 @@ def save_nparray(array, path):
     else:
         print(f'Saved array {array.shape} to {path}')
 
+def save_metadata(proc_name, durations, path):
+    annotations = get_annotations(proc_name, return_empty=False)
+    parameters = get_similarity_params(proc_name, return_empty=False)
+    info = { k: {
+        'time': durations[k],
+        'num_annotations': len(annotations[k]),
+        'isovalue': parameters[k]['isovalue'],
+    } for k in annotations.keys() }
+
+    with path.open("w", encoding='UTF-8') as f:
+        json.dump(info, f)
+    print(f'Saved metadata to {path}:\n{info}')
+
 def is_path_creatable(pathname: str) -> bool:
     '''
     `True` if the current user has sufficient permissions to create the passed
@@ -229,6 +244,8 @@ class DinoSimilarities(ivw.Processor):
         self.dims = None
         self.cache_path = None
         self.loaded_cache_path = None
+        self.start_times = {}
+        self.end_times = {}
         self.save_dir = ivw.properties.DirectoryProperty("saveDir", "Save Directory", "")
         self.save_btn = ivw.properties.ButtonProperty("saveBtn", "Save Similarities", self.save_similarities)
         self.load_btn = ivw.properties.ButtonProperty("loadBtn", "Load Similarities", self.load_similarities)
@@ -238,11 +255,19 @@ class DinoSimilarities(ivw.Processor):
 
     def save_similarities(self):
         if self.save_dir.value != '' and is_path_creatable(self.save_dir.value):
+            end_time = time.time()
             dir = Path(self.save_dir.value)
             dir.mkdir(parents=True, exist_ok=True)
             save_nparray(self.similarities, dir / 'similarities.npy')
             save_annotations(self.dinoProcessorIdentifier.value, dir / 'annotations.npy')
             save_similarity_params(self.dinoProcessorIdentifier.value, dir / 'similarity_params.npy')
+            ivw.getApp().network.save(str(dir / 'workspace.inv'))
+            durations = {}
+            for k in self.end_times.keys():
+                durations[k] = self.end_times[k] - self.start_times[k]
+            save_metadata(self.dinoProcessorIdentifier.value, durations, dir / 'metadata.json')
+            isos = { k: v['isovalue'] for k,v in get_similarity_params(self.dinoProcessorIdentifier.value, return_empty=False).items() }
+            save_nparray({k: (v > 255.0*isos[k]).to(torch.uint8) for k,v in self.similarities.items()}, dir / 'predictions.npy')
             if self.inport.hasData():
                 save_nparray(self.inport.getData().data, dir / 'volume.npy')
             if self.feat_vol is not None:
@@ -315,10 +340,13 @@ class DinoSimilarities(ivw.Processor):
                 for inp in self.outs[k].getConnectedInports():
                     net.removeConnection(self.outs[k], inp)
                 self.removeOutport(self.outs[k])
-                del self.outs[k]
+                if k in self.start_times: del self.start_times[k]
+                if k in self.end_times:   del self.end_times[k]
+                if k in self.outs:        del self.outs[k]
             for k in sorted(new_names - cur_names):
                 self.outs[k] = ivw.data.VolumeOutport(k)
                 self.addOutport(self.outs[k])
+                self.start_times[k] = time.time()
 
     def connectVolumeOutports(self):
         simInport = get_processor(self.dinoProcessorIdentifier.value).getInport('similarity')
@@ -393,11 +421,12 @@ class DinoSimilarities(ivw.Processor):
             if abs_coords.numel() == 0:
                 return {}  # No annotation in any of the NTFs
             rel_coords = (abs_coords.float() + 0.5) / vol_extent * 2.0 - 1.0
-
+            t0 = time.time()
             qf = sample_features3d(self.feat_vol, rel_coords, mode='bilinear')
 
             sims = torch.einsum('mfwhd,mcaf->mcawhd', (self.feat_vol, qf)).squeeze(1)
-
+            sim_duration = time.time() - t0
+            print(f'Took {sim_duration}s to compute similarities for {len(annotations)} classes ({sim_duration/len(annotations)}s avg)')
             # bls_scale = self.similarityVolumeScalingFactor.value / 4.0
             # lr_abs_coords = torch.round((rel_coords * 0.5 + 0.5) * (torch.tensor([*sims.shape[-3:]]).to(dev).to(typ) - 1.0)).long()  # (A, 3)
             # lr_abs_coords = split_into_classes(make_3d(lr_abs_coords)) # (1, A, 3) -> {NTF_ID: (1, a, 3)}
@@ -410,6 +439,8 @@ class DinoSimilarities(ivw.Processor):
                 vol = F.interpolate(make_5d(torch.from_numpy(in_vol.copy())).to(dev), sim_shape, mode='trilinear').squeeze(0)
                 vol = norm_minmax(vol)
 
+            t0 = time.time()
+            t1 = t0
             for k,sim in split_into_classes(sims).items():
                 ramp_min = 0.1  # simparams[k]['ramp'][0]
                 sim = torch.where(sim >= ramp_min, sim, torch.zeros(1, dtype=typ, device=dev)) ** 2.5
@@ -434,7 +465,7 @@ class DinoSimilarities(ivw.Processor):
                         'sigma_luma': simparams[k]['bls_sigma_luma']
                     }
                     median_int = sample_features3d(vol, rel_coords_dict[k], mode='nearest').median()
-                    svol = enhance_contrast(vol, value=median_int, factor=simparams[k]['contrast'])
+                    svol = enhance_contrast(vol, value=median_int, factor=3*simparams[k]['contrast'])
                     svol = (255.0 * svol).to(torch.uint8)
                     if   svol.size(0) == 1: svol = svol[None].expand(1,3,-1,-1,-1)
                     elif svol.size(0) == 2: svol = svol[:,None].expand(-1,3,-1,-1,-1)
@@ -463,13 +494,18 @@ class DinoSimilarities(ivw.Processor):
                         if simparams[k]['modalityWeight'][i] > 0:
                             msim += ssim * simparams[k]['modalityWeight'][i]
                     sim_split[k] = (255.0 / msim.float().quantile(q=0.9999) * msim).clamp(0, 255.0).cpu().to(torch.uint8).squeeze()
+                print(f'BLS for {k} took {time.time() - t1}s')
+                t1 = time.time()
+            bls_duration = time.time() - t0
+            print(f'BLS for {len(annotations)} classes took {bls_duration}s ({bls_duration/len(annotations)}s avg) for res {sim_shape}')
             return sim_split
 
     def updateSimilarities(self):
         annotations, requires_update = get_annotations(self.dinoProcessorIdentifier.value, return_requpdate=True, return_empty=True)
-        total_todo = requires_update.keys()
         if len(requires_update) > 0:  # or len(annotations.keys()) > len(self.similarities):
             to_update = set(requires_update.keys()).union(set(k for k in annotations.keys() if k not in self.similarities.keys()))
+            for k in to_update:
+                self.end_times[k] = time.time()
             self.similarities.update(self.computeSimilarities({ k: v for k,v in annotations.items() if k in to_update}))
             for k in requires_update.keys():
                 if k in self.similarities.keys() and len(annotations[k]) == 0:
@@ -533,6 +569,7 @@ class DinoSimilarities(ivw.Processor):
                 in_vol = self.inport.getData() # ivw.Volume
                 for k in ports_to_update: #self.outs.keys():
                     sim_np = self.similarities[k].numpy()
+                    sim_np = gaussian_filter(sim_np, 0.5)
                     for _ in range(self.openCloseIterations.value):
                         sim_np = grey_closing(grey_opening(sim_np, (3,3,3)), (3,3,3))
                     volume = ivw.data.Volume(np.asfortranarray(sim_np))
