@@ -36,6 +36,7 @@
 #include <inviwo/core/processors/processorinfo.h>             // for ProcessorInfo
 #include <inviwo/core/ports/volumeport.h>                     // for VolumeInport
 #include <inviwo/core/ports/imageport.h>                      // for ImageInport, ImageOutport
+#include <inviwo/core/ports/meshport.h>
 #include <modules/opengl/shader/shader.h>                     // for Shader
 
 #include <inviwo/core/properties/listproperty.h>
@@ -77,6 +78,7 @@ private:
     ImageInport backgroundPort_;
     ImageOutport outport_;
     VolumeOutport simOutport_;
+    MeshOutport allAnnotations_;
 
     NTFPropertyList ntfs_;
     ListProperty annotationButtons_;

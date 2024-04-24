@@ -36,6 +36,7 @@
 #include <inviwo/core/properties/transferfunctionproperty.h>  // for TransferFunctionProperty
 #include <inviwo/core/properties/listproperty.h>
 #include <inviwo/neuraltf/properties/ntfproperty.h>
+#include <inviwo/core/datastructures/geometry/typedmesh.h>
 
 #include <modules/opengl/shader/shader.h>                     // for Shader, Shader::Build
 #include <modules/opengl/shader/shaderobject.h>               // for ShaderObject
@@ -75,6 +76,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     , exitPort_{"exit", "Exit-point image"_help}
     , backgroundPort_{"bg", "Input Image to write into"_help}
     , outport_{"outport", "Rendered Image"_help}
+    , allAnnotations_{"allAnnotations", "All Annotations as Mesh"_help}
     , simOutport_{"simOutport", "Selected Similarity Volume"_help}
     , ntfs_{"tfs", "Classes",
         std::make_unique<NTFProperty>("ntf0", "Class 1", &volumePort_)}
@@ -140,7 +142,7 @@ DINOVolumeRenderer::DINOVolumeRenderer()
     backgroundPort_.onConnect([&]() { this->invalidate(InvalidationLevel::InvalidResources); });
     backgroundPort_.onDisconnect([&]() { this->invalidate(InvalidationLevel::InvalidResources); });
 
-    addPorts(volumePort_, entryPort_, exitPort_, similarityPort_, backgroundPort_, outport_, simOutport_, annotationPort_);
+    addPorts(volumePort_, entryPort_, exitPort_, similarityPort_, backgroundPort_, outport_, simOutport_, annotationPort_, allAnnotations_);
     similarityPort_.setOptional(true);
     backgroundPort_.setOptional(true);
 
@@ -328,8 +330,14 @@ void DINOVolumeRenderer::process() {
     if (selectedClass_.size() > 0) {
         const std::string selection = selectedClass_.getSelectedIdentifier();
         auto ntfProps = ntfs_.getProperties();
+        auto mesh = std::make_shared<ColoredMesh>();
+        mesh->setModelMatrix(volumePort_.getData()->getModelMatrix());
         for (size_t i = 0; i < ntfProps.size(); i++) {
             const auto p(static_cast<const NTFProperty*>(ntfProps[i]));
+            for (const auto& coord : p->getAnnotatedVoxels()) {
+                LogInfo(coord);
+                mesh->addVertex((vec3(coord)+0.5f) / vec3(volumePort_.getData()->getDimensions()), p->getColor());
+            }
             if (p->getIdentifier() == selection) {
                 std::vector<vec3> coords;
                 for (const auto& coord : p->getAnnotatedVoxels()) {
@@ -338,6 +346,7 @@ void DINOVolumeRenderer::process() {
                 annotationPort_.setData(std::make_shared<std::vector<vec3>>(coords));
             }
         }
+        allAnnotations_.setData(mesh);
     }
 }
 
